@@ -1,0 +1,3181 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Susun Haiwan | Arrange the Animals</title>
+  <!-- Google Fonts: Quicksand Only -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Quicksand', 'sans-serif'],
+          },
+          colors: {
+            safari: {
+              sky: '#78C4E8',
+              sun: '#FDCB58',
+              sand: '#F7E1B5',
+              earth: '#D9822B',
+              terracotta: '#B85023',
+              clay: '#853713',
+              grass: '#7FB03A',
+              darkgrass: '#44661B',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * {
+      font-family: 'Quicksand', sans-serif !important;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #E28F3F;
+    }
+
+    #game-shell {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      min-height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #full-screen-background {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .game-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    .game-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Preschool Tactile Buttons */
+    .btn-bubbly {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease;
+      cursor: pointer;
+    }
+    .btn-bubbly:active {
+      transform: translateY(4px) scale(0.97);
+    }
+
+    /* Draggable cards styling */
+    .drag-card {
+      touch-action: none;
+      transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.18s ease;
+      cursor: grab;
+    }
+    .drag-card:active {
+      cursor: grabbing;
+    }
+    .drag-card.dragging {
+      opacity: 0.85;
+      transform: scale(1.08) rotate(-3deg);
+      box-shadow: 0 18px 26px -4px rgba(0, 0, 0, 0.3);
+      z-index: 99;
+    }
+    .drag-slot {
+      transition: all 0.2s ease;
+    }
+    .drag-slot.hovered {
+      background-color: rgba(253, 224, 71, 0.45) !important;
+      border-color: #F59E0B !important;
+      transform: scale(1.04);
+    }
+    .drag-slot.occupied {
+      border-style: solid;
+      border-color: #10B981;
+    }
+
+    /* Sparkle & floating animations */
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-7px) rotate(1deg); }
+    }
+    .animate-float {
+      animation: gentleFloat 3.8s ease-in-out infinite;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.65); opacity: 0; }
+      70% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Connection Line Canvas SVG */
+    #connection-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body class="text-amber-950">
+  <div id="game-shell">
+    
+    <!-- MANDATORY FULL-SCREEN ANIMATED SVG SAVANNA/SAFARI BACKGROUND -->
+    <svg id="full-screen-background" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <!-- Sky Gradient -->
+        <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#3FA9F5" />
+          <stop offset="42%" stop-color="#76C7F7" />
+          <stop offset="75%" stop-color="#FCD271" />
+          <stop offset="100%" stop-color="#F7A046" />
+        </linearGradient>
+
+        <!-- Distant Mountain Gradient -->
+        <linearGradient id="hillGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#E2733A" stop-opacity="0.8" />
+          <stop offset="100%" stop-color="#BA5427" stop-opacity="0.9" />
+        </linearGradient>
+
+        <linearGradient id="hillGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#C75B28" />
+          <stop offset="100%" stop-color="#913410" />
+        </linearGradient>
+
+        <!-- Savanna Plains Gradient -->
+        <linearGradient id="savannaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#E59E38" />
+          <stop offset="50%" stop-color="#CF7E23" />
+          <stop offset="100%" stop-color="#9C5212" />
+        </linearGradient>
+
+        <!-- Safari Sandy Trail -->
+        <linearGradient id="trailGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#F5CE7B" />
+          <stop offset="100%" stop-color="#D9A348" />
+        </linearGradient>
+
+        <!-- Sun Glow Radial -->
+        <radialGradient id="sunRadial" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF5C2" stop-opacity="1" />
+          <stop offset="40%" stop-color="#FDC544" stop-opacity="0.9" />
+          <stop offset="75%" stop-color="#F7941D" stop-opacity="0.3" />
+          <stop offset="100%" stop-color="#F7941D" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+
+      <!-- LAYER 1: Deep Sky & Radiant Sun -->
+      <rect x="0" y="0" width="1440" height="900" fill="url(#skyGrad)" />
+      
+      <!-- Pulsing Warm Sun -->
+      <circle cx="1180" cy="180" r="140" fill="url(#sunRadial)">
+        <animate attributeName="r" values="135;155;135" dur="7s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.85;1;0.85" dur="7s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="1180" cy="180" r="70" fill="#FFF2B2" />
+
+      <!-- LAYER 2: Drifting Safari Clouds (Real SVG Animate) -->
+      <!-- Cloud 1 -->
+      <g opacity="0.88">
+        <path d="M 0 0 C 20 -20 50 -20 70 0 C 90 -25 130 -20 145 5 C 165 5 180 20 175 40 C 175 60 155 70 135 70 L 20 70 C -5 70 -20 50 -10 30 C -20 15 0 0 0 0 Z" fill="#FFFFFF">
+          <animateTransform attributeName="transform" type="translate" from="-220 90" to="1500 90" dur="58s" repeatCount="indefinite" />
+        </path>
+      </g>
+      <!-- Cloud 2 -->
+      <g opacity="0.75">
+        <path d="M 0 0 C 25 -15 60 -15 80 0 C 100 -20 150 -15 165 10 C 185 10 200 25 195 45 C 195 65 170 75 145 75 L 30 75 C 0 75 -15 55 -10 35 C -20 20 0 0 0 0 Z" fill="#FFF8E7">
+          <animateTransform attributeName="transform" type="translate" from="200 160" to="1660 160" dur="72s" repeatCount="indefinite" />
+        </path>
+      </g>
+      <!-- Cloud 3 (Distant high altitude) -->
+      <g opacity="0.6">
+        <path d="M 0 0 C 15 -10 40 -10 55 0 C 70 -15 100 -12 110 5 C 125 5 135 18 130 32 L 15 32 C -5 32 -10 20 -5 10 Z" fill="#FFFFFF">
+          <animateTransform attributeName="transform" type="translate" from="-180 50" to="1550 50" dur="90s" repeatCount="indefinite" />
+        </path>
+      </g>
+
+      <!-- Distant Savanna Birds (Gliding with SVG Motion) -->
+      <g fill="none" stroke="#5E2605" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75">
+        <!-- Bird 1 -->
+        <path d="M 0 0 Q 8 -10 16 0 Q 24 -10 32 0">
+          <animateTransform attributeName="transform" type="translate" from="-100 130" to="1500 80" dur="32s" repeatCount="indefinite" />
+          <animate attributeName="d" values="M 0 0 Q 8 -10 16 0 Q 24 -10 32 0; M 0 -4 Q 8 6 16 -4 Q 24 6 32 -4; M 0 0 Q 8 -10 16 0 Q 24 -10 32 0" dur="0.9s" repeatCount="indefinite" />
+        </path>
+        <!-- Bird 2 -->
+        <path d="M 0 0 Q 6 -8 13 0 Q 20 -8 26 0">
+          <animateTransform attributeName="transform" type="translate" from="-140 150" to="1460 100" dur="34s" repeatCount="indefinite" />
+          <animate attributeName="d" values="M 0 0 Q 6 -8 13 0 Q 20 -8 26 0; M 0 -3 Q 6 5 13 -3 Q 20 5 26 -3; M 0 0 Q 6 -8 13 0 Q 20 -8 26 0" dur="0.8s" repeatCount="indefinite" />
+        </path>
+      </g>
+
+      <!-- LAYER 3: Distant Savanna Ridges & Plateau Hills -->
+      <path d="M 0 450 Q 220 380 480 430 T 960 410 Q 1200 360 1440 440 L 1440 680 L 0 680 Z" fill="url(#hillGrad1)" />
+      <!-- Mesa / Table mountain -->
+      <path d="M 720 410 L 760 365 L 940 365 L 990 415 Z" fill="#9C3A14" opacity="0.6" />
+      <path d="M 0 490 Q 300 450 620 495 T 1220 470 Q 1340 460 1440 500 L 1440 760 L 0 760 Z" fill="url(#hillGrad2)" />
+
+      <!-- LAYER 4: Middle Savanna Ground & Silhouette Acacia Trees -->
+      <path d="M 0 540 Q 380 500 800 550 T 1440 540 L 1440 900 L 0 900 Z" fill="url(#savannaGrad)" />
+
+      <!-- Distant Acacia Tree (Left-Center) -->
+      <g transform="translate(380, 430) scale(0.65)" opacity="0.85">
+        <path d="M 50 150 Q 55 90 70 70 Q 90 40 120 25 Q 110 55 90 85 Q 75 110 70 150 Z" fill="#4A1E06" />
+        <ellipse cx="60" cy="50" rx="60" ry="18" fill="#523910" />
+        <ellipse cx="120" cy="25" rx="55" ry="16" fill="#432E0C" />
+      </g>
+
+      <!-- Middle-ground Acacia Tree (Right) with swaying branches -->
+      <g transform="translate(1120, 390)">
+        <!-- Trunk -->
+        <path d="M 120 280 C 115 210 95 160 80 120 C 65 85 40 60 15 45 C 50 65 65 95 75 140 C 85 190 95 240 100 280 Z" fill="#542508" />
+        <path d="M 80 120 C 105 90 145 65 190 48 C 150 65 120 95 100 135 Z" fill="#542508" />
+        <!-- Swaying Flat-topped Acacia Canopies -->
+        <g>
+          <animateTransform attributeName="transform" type="rotate" values="0 80 120; 1.8 80 120; 0 80 120; -1.5 80 120; 0 80 120" dur="9s" repeatCount="indefinite" />
+          <ellipse cx="10" cy="40" rx="95" ry="24" fill="#3D5A14" />
+          <ellipse cx="15" cy="34" rx="80" ry="18" fill="#547B1E" />
+          <ellipse cx="195" cy="45" rx="85" ry="22" fill="#365011" />
+          <ellipse cx="190" cy="38" rx="70" ry="16" fill="#4D7219" />
+          <ellipse cx="105" cy="20" rx="110" ry="26" fill="#5E8921" />
+          <ellipse cx="105" cy="14" rx="90" ry="18" fill="#75A82E" />
+        </g>
+      </g>
+
+      <!-- Large Acacia Tree (Left-Hand Side Framing) -->
+      <g transform="translate(-40, 260)">
+        <!-- Giant Trunk and branches -->
+        <path d="M 140 440 C 150 350 170 280 190 220 C 210 160 250 120 310 90 C 260 115 220 155 195 210 C 170 265 155 340 125 440 Z" fill="#421C06" />
+        <path d="M 195 210 C 170 160 130 115 70 85 C 120 110 155 150 175 205 Z" fill="#3D1804" />
+        <!-- Acacia Leaves Canopy with gentle sway -->
+        <g>
+          <animateTransform attributeName="transform" type="rotate" values="0 190 220; -1.2 190 220; 0 190 220; 1.4 190 220; 0 190 220" dur="8.5s" repeatCount="indefinite" />
+          <ellipse cx="330" cy="85" rx="140" ry="32" fill="#2F450E" />
+          <ellipse cx="325" cy="76" rx="120" ry="24" fill="#486918" />
+          <ellipse cx="70" cy="80" rx="110" ry="28" fill="#385210" />
+          <ellipse cx="75" cy="72" rx="92" ry="20" fill="#567D1E" />
+          <ellipse cx="200" cy="45" rx="160" ry="36" fill="#436415" />
+          <ellipse cx="195" cy="36" rx="135" ry="26" fill="#659325" />
+        </g>
+      </g>
+
+      <!-- LAYER 5: Savanna Foreground, Rocks, Safari Trail, Grass (Y = 600 to 900) -->
+      <!-- Curving Sandy Safari Road / Track -->
+      <path d="M 280 900 Q 560 760 760 700 Q 940 650 1020 620 L 1100 635 Q 980 670 780 735 Q 520 815 360 900 Z" fill="url(#trailGrad)" opacity="0.92" />
+      
+      <!-- Safari Dust particles moving along trail (SVG animate) -->
+      <g opacity="0.45" fill="#FFE8B3">
+        <ellipse cx="650" cy="740" rx="20" ry="8">
+          <animateTransform attributeName="transform" type="translate" values="0 0; 45 -15; 90 -30" dur="4s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.6;0.3;0" dur="4s" repeatCount="indefinite" />
+        </ellipse>
+        <ellipse cx="820" cy="690" rx="15" ry="6">
+          <animateTransform attributeName="transform" type="translate" values="0 0; 35 -10; 70 -20" dur="3.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.5;0.2;0" dur="3.5s" repeatCount="indefinite" />
+        </ellipse>
+      </g>
+
+      <!-- Savanna Boulders / Rocks (Left Foreground) -->
+      <path d="M 60 880 Q 90 770 170 780 Q 240 790 270 850 Q 290 890 280 900 L 40 900 Z" fill="#8C5C35" />
+      <path d="M 90 860 Q 110 795 160 800 Q 210 805 230 855 Z" fill="#A87346" />
+      <path d="M 180 890 Q 220 830 275 835 Q 320 845 330 895 Z" fill="#754A28" />
+
+      <!-- Savanna Boulders (Right Foreground) -->
+      <path d="M 1240 900 Q 1260 810 1330 805 Q 1410 800 1440 850 L 1440 900 Z" fill="#8C5C35" />
+      <path d="M 1270 870 Q 1290 825 1340 820 Q 1390 820 1410 865 Z" fill="#A87346" />
+
+      <!-- LAYER 6: Swaying Savanna Grass Tufts across the Foreground with <animateTransform> -->
+      <!-- Grass Cluster 1 (Bottom Left) -->
+      <g transform="translate(180, 840)">
+        <animateTransform attributeName="transform" type="rotate" values="0 180 840; 3 180 840; 0 180 840; -3 180 840; 0 180 840" dur="4.2s" repeatCount="indefinite" />
+        <path d="M 0 60 Q -15 20 -25 0 Q -10 25 5 60 Z" fill="#6A9626" />
+        <path d="M 10 60 Q 0 10 -5 -15 Q 8 20 18 60 Z" fill="#88BE32" />
+        <path d="M 20 60 Q 30 15 45 -5 Q 25 25 25 60 Z" fill="#587E1E" />
+        <path d="M 30 60 Q 45 25 60 10 Q 38 35 35 60 Z" fill="#78A72B" />
+      </g>
+
+      <!-- Grass Cluster 2 (Center-Left) -->
+      <g transform="translate(490, 830)">
+        <animateTransform attributeName="transform" type="rotate" values="0 490 830; -3.5 490 830; 0 490 830; 3 490 830; 0 490 830" dur="4.8s" repeatCount="indefinite" />
+        <path d="M 0 50 Q -10 15 -20 -5 Q -6 20 6 50 Z" fill="#7BAF2D" />
+        <path d="M 8 50 Q 15 10 20 -15 Q 16 15 14 50 Z" fill="#93CE37" />
+        <path d="M 16 50 Q 30 15 42 0 Q 25 25 22 50 Z" fill="#628C22" />
+      </g>
+
+      <!-- Grass Cluster 3 (Center-Right) -->
+      <g transform="translate(930, 810)">
+        <animateTransform attributeName="transform" type="rotate" values="0 930 810; 4 930 810; 0 930 810; -3 930 810; 0 930 810" dur="5.1s" repeatCount="indefinite" />
+        <path d="M 0 55 Q -15 20 -30 5 Q -12 25 4 55 Z" fill="#659023" />
+        <path d="M 10 55 Q 5 10 12 -20 Q 15 15 18 55 Z" fill="#8ABF33" />
+        <path d="M 20 55 Q 35 20 55 5 Q 30 25 26 55 Z" fill="#52761A" />
+      </g>
+
+      <!-- Grass Cluster 4 (Bottom Right) -->
+      <g transform="translate(1220, 850)">
+        <animateTransform attributeName="transform" type="rotate" values="0 1220 850; -3 1220 850; 0 1220 850; 3.5 1220 850; 0 1220 850" dur="4.5s" repeatCount="indefinite" />
+        <path d="M 0 50 Q -10 20 -18 0 Q -5 22 8 50 Z" fill="#729E29" />
+        <path d="M 12 50 Q 20 15 28 -12 Q 22 20 20 50 Z" fill="#91CB36" />
+        <path d="M 22 50 Q 38 20 50 2 Q 32 25 28 50 Z" fill="#587B1D" />
+      </g>
+
+      <!-- Drifting Savanna Leaf (SVG Animate) -->
+      <path d="M 0 0 C 10 -5 20 0 25 10 C 15 15 5 10 0 0 Z" fill="#E8B038" opacity="0.85">
+        <animateTransform attributeName="transform" type="translate" values="100 480; 350 600; 650 720; 950 820; 1300 900" dur="18s" repeatCount="indefinite" />
+        <animateTransform attributeName="transform" type="rotate" values="0; 120; 240; 360" dur="4s" additive="sum" repeatCount="indefinite" />
+      </path>
+    </svg>
+
+    <!-- FLOATING SVG OVERLAY FOR DRAG-TO-CONNECT PERMANENT LINES -->
+    <svg id="connection-svg"></svg>
+
+    <!-- TOP NAVIGATION BAR (Always visible above background) -->
+    <header class="relative z-20 w-full px-3 py-2 sm:px-6 sm:py-3 flex items-center justify-between">
+      <!-- Left: Logo & Audio Button -->
+      <div class="flex items-center gap-2">
+        <button onclick="goToHome()" class="btn-bubbly flex items-center gap-2 bg-amber-50/90 backdrop-blur-sm px-3 py-1.5 rounded-2xl border-2 border-amber-300 shadow-md">
+          <svg class="w-6 h-6 text-amber-700" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+          <span class="font-bold text-amber-900 text-sm hidden xs:inline" data-i18n="navHome">Laman Utama</span>
+        </button>
+
+        <!-- Collection Navigation Button -->
+        <button onclick="goToCollection()" class="btn-bubbly flex items-center gap-1.5 bg-amber-100/90 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-2xl border-2 border-amber-300 shadow-md font-bold text-xs sm:text-sm">
+          <svg class="w-5 h-5 text-amber-700" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+          </svg>
+          <span class="hidden sm:inline" data-i18n="navCollection">Koleksi</span>
+        </button>
+
+        <!-- Repeat Audio Voice Button -->
+        <button id="btn-speak-instruction" onclick="speakCurrentInstruction()" title="Ulang Arahan / Repeat Instruction" class="btn-bubbly bg-yellow-400 hover:bg-yellow-300 text-amber-950 p-2 rounded-2xl border-2 border-yellow-500 shadow-md flex items-center justify-center">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Center: Kiki Safari Mascot Pill -->
+      <div class="flex items-center gap-1.5 bg-amber-900/80 backdrop-blur-md px-3 py-1 rounded-full border border-amber-400/50 text-white text-xs sm:text-sm font-bold shadow-lg">
+        <!-- Inline SVG Meerkat Mascot Mini Head -->
+        <svg class="w-7 h-7 shrink-0" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="26" fill="#D97706" />
+          <ellipse cx="20" cy="18" rx="7" ry="10" fill="#78350F" />
+          <ellipse cx="44" cy="18" rx="7" ry="10" fill="#78350F" />
+          <circle cx="32" cy="34" r="18" fill="#FDE68A" />
+          <!-- Dark eye patches -->
+          <ellipse cx="24" cy="30" rx="7" ry="6" fill="#78350F" />
+          <ellipse cx="40" cy="30" rx="7" ry="6" fill="#78350F" />
+          <circle cx="24" cy="30" r="3" fill="#FFFFFF" />
+          <circle cx="40" cy="30" r="3" fill="#FFFFFF" />
+          <circle cx="24" cy="30" r="1.5" fill="#000000" />
+          <circle cx="40" cy="30" r="1.5" fill="#000000" />
+          <!-- Safari Explorer Mini Hat -->
+          <path d="M 14 20 Q 32 8 50 20 L 54 22 L 10 22 Z" fill="#15803D" />
+          <ellipse cx="32" cy="16" rx="14" ry="7" fill="#16A34A" />
+          <!-- Snout & Smile -->
+          <polygon points="30,36 34,36 32,39" fill="#000000" />
+          <path d="M 29 40 Q 32 43 35 40" stroke="#000000" stroke-width="1.5" stroke-linecap="round" fill="none" />
+        </svg>
+        <span class="text-yellow-200">Kiki</span>
+        <span class="text-amber-100 hidden sm:inline" data-i18n="mascotTitle">Renjer Safari</span>
+      </div>
+
+      <!-- Right: Language Switcher & Profile Quick Access -->
+      <div class="flex items-center gap-2">
+        <!-- Language Switcher -->
+        <div class="flex bg-white/90 backdrop-blur-sm p-1 rounded-2xl border-2 border-amber-300 shadow-md">
+          <button id="lang-btn-bm" onclick="setLanguage('bm')" class="px-2.5 py-1 text-xs font-bold rounded-xl transition-colors bg-amber-500 text-white shadow-sm">
+            BM
+          </button>
+          <button id="lang-btn-en" onclick="setLanguage('en')" class="px-2.5 py-1 text-xs font-bold rounded-xl transition-colors text-amber-900 hover:bg-amber-100">
+            EN
+          </button>
+        </div>
+
+        <!-- Profile Button -->
+        <button onclick="openProfileScreen()" title="Profil Pemain / Player Profile" class="btn-bubbly bg-amber-100/90 hover:bg-amber-200 text-amber-900 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl border-2 border-amber-300 shadow-md flex items-center gap-1.5 font-bold text-xs sm:text-sm">
+          <svg class="w-5 h-5 text-amber-700" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+          <span class="hidden md:inline" data-i18n="navProfile">Profil</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN INTERACTIVE CONTAINER -->
+    <main class="game-content flex-1 px-3 sm:px-6 pb-6">
+
+      <!-- ============================================== -->
+      <!-- SCREEN 1: HOME / FRONT PAGE (MANDATORY 1ST SCREEN) -->
+      <!-- ============================================== -->
+      <div id="screen-home" class="w-full max-w-3xl mx-auto my-auto flex flex-col items-center justify-center text-center py-4 px-3">
+        <!-- Mascot Banner Presentation -->
+        <div class="relative mb-3 animate-float">
+          <!-- Big Inline SVG Mascot: Kiki the Safari Meerkat Scout -->
+          <svg class="w-36 h-36 sm:w-48 sm:h-48 drop-shadow-2xl" viewBox="0 0 200 200" fill="none">
+            <!-- Meerkat Body -->
+            <ellipse cx="100" cy="140" rx="42" ry="55" fill="#C26A0E" />
+            <ellipse cx="100" cy="145" rx="30" ry="42" fill="#FED7AA" />
+            <!-- Explorer Scout Vest -->
+            <path d="M 68 115 L 75 175 C 80 180 90 182 100 182 C 110 182 120 180 125 175 L 132 115 C 120 110 80 110 68 115 Z" fill="#15803D" opacity="0.95" />
+            <rect x="75" y="130" width="16" height="18" rx="3" fill="#166534" />
+            <rect x="109" y="130" width="16" height="18" rx="3" fill="#166534" />
+            <circle cx="100" cy="140" r="4" fill="#FACC15" />
+            <!-- Neck & Head -->
+            <ellipse cx="100" cy="82" rx="36" ry="32" fill="#D97706" />
+            <!-- Ears -->
+            <ellipse cx="64" cy="62" rx="10" ry="14" fill="#78350F" />
+            <ellipse cx="65" cy="62" rx="6" ry="9" fill="#FDE68A" />
+            <ellipse cx="136" cy="62" rx="10" ry="14" fill="#78350F" />
+            <ellipse cx="135" cy="62" rx="6" ry="9" fill="#FDE68A" />
+            <!-- Head Cheek Fluff -->
+            <circle cx="78" cy="90" r="14" fill="#FED7AA" />
+            <circle cx="122" cy="90" r="14" fill="#FED7AA" />
+            <!-- Eye Patches (Characteristic meerkat markings) -->
+            <ellipse cx="84" cy="78" rx="12" ry="10" fill="#78350F" />
+            <ellipse cx="116" cy="78" rx="12" ry="10" fill="#78350F" />
+            <!-- Big Sparkly Eyes -->
+            <circle cx="84" cy="78" r="6.5" fill="#FFFFFF" />
+            <circle cx="116" cy="78" r="6.5" fill="#FFFFFF" />
+            <circle cx="84" cy="78" r="4" fill="#1E293B" />
+            <circle cx="116" cy="78" r="4" fill="#1E293B" />
+            <circle cx="82" cy="76" r="1.5" fill="#FFFFFF" />
+            <circle cx="114" cy="76" r="1.5" fill="#FFFFFF" />
+            <!-- Snout & Nose -->
+            <ellipse cx="100" cy="92" rx="10" ry="7" fill="#FEF3C7" />
+            <path d="M 96 89 Q 100 86 104 89 L 100 93 Z" fill="#0F172A" />
+            <path d="M 96 95 Q 100 99 104 95" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none" />
+            <!-- Cheerful Rosy Cheeks -->
+            <circle cx="73" cy="88" r="5" fill="#F43F5E" opacity="0.4" />
+            <circle cx="127" cy="88" r="5" fill="#F43F5E" opacity="0.4" />
+            <!-- Safari Scout Hat with feather -->
+            <ellipse cx="100" cy="56" rx="46" ry="12" fill="#166534" />
+            <path d="M 68 56 Q 72 32 100 30 Q 128 32 132 56 Z" fill="#15803D" />
+            <rect x="68" y="52" width="64" height="6" fill="#CA8A04" />
+            <path d="M 74 52 Q 62 38 60 22 Q 68 34 76 48 Z" fill="#E11D48" />
+            <!-- Little Paw waving -->
+            <ellipse cx="50" cy="115" rx="9" ry="14" fill="#D97706" transform="rotate(-30 50 115)" />
+            <ellipse cx="145" cy="120" rx="9" ry="13" fill="#D97706" transform="rotate(25 145 120)" />
+          </svg>
+          <!-- Badge on mascot -->
+          <div class="absolute -bottom-2 -right-2 bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-950 font-black text-xs px-3 py-1 rounded-full shadow-lg border-2 border-white tracking-wide">
+            KIKI SAFARI
+          </div>
+        </div>
+
+        <!-- Main Title & Subtitle in Preschool Styling -->
+        <div class="bg-amber-50/90 backdrop-blur-md rounded-3xl p-5 sm:p-7 shadow-2xl border-4 border-amber-300/80 max-w-lg w-full mb-6">
+          <h1 id="home-title" class="text-3xl sm:text-5xl font-black text-amber-900 tracking-tight leading-tight drop-shadow-sm mb-2">
+            Susun Haiwan
+          </h1>
+          <p id="home-subtitle" class="text-base sm:text-xl font-bold text-amber-800">
+            Jom susun haiwan ikut saiz!
+          </p>
+
+          <div class="w-24 h-1.5 bg-amber-400 rounded-full mx-auto my-3"></div>
+
+          <div class="flex flex-wrap justify-center items-center gap-2 text-xs font-bold text-amber-700">
+            <span class="bg-emerald-200/80 text-emerald-900 px-2.5 py-1 rounded-lg" data-i18n="tagTouch">Tarik & Susun</span>
+            <span class="bg-sky-200/80 text-sky-900 px-2.5 py-1 rounded-lg" data-i18n="tagVoice">Suara BM & EN</span>
+          </div>
+        </div>
+
+        <!-- Primary & Secondary CTA Buttons -->
+        <div class="flex flex-col w-full max-w-xs gap-3">
+          <!-- Start Playing -->
+          <button onclick="goToSessionSelection()" class="btn-bubbly w-full py-4 bg-gradient-to-b from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl sm:text-2xl rounded-3xl shadow-xl border-b-4 border-emerald-800 flex items-center justify-center gap-3">
+            <svg class="w-8 h-8 drop-shadow" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span id="btn-start-label">Mula Bermain</span>
+          </button>
+
+          <!-- How to Play, Collection & Profile Buttons -->
+          <div class="grid grid-cols-3 gap-2 w-full">
+            <button onclick="goToHowToPlay()" class="btn-bubbly py-2.5 bg-gradient-to-b from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-amber-950 font-bold text-xs sm:text-sm rounded-2xl shadow-lg border-b-3 border-amber-700 flex flex-col items-center justify-center gap-1">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+              </svg>
+              <span id="btn-how-label">Cara Main</span>
+            </button>
+
+            <button onclick="goToCollection()" class="btn-bubbly py-2.5 bg-gradient-to-b from-orange-400 to-amber-500 hover:from-orange-300 hover:to-amber-400 text-amber-950 font-bold text-xs sm:text-sm rounded-2xl shadow-lg border-b-3 border-amber-800 flex flex-col items-center justify-center gap-1">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+              </svg>
+              <span id="btn-collection-label">Koleksi</span>
+            </button>
+
+            <button onclick="openProfileScreen()" class="btn-bubbly py-2.5 bg-gradient-to-b from-sky-400 to-blue-500 hover:from-sky-300 hover:to-blue-400 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg border-b-3 border-blue-700 flex flex-col items-center justify-center gap-1">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              <span id="btn-profile-label">Profil</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN: ANIMAL COLLECTION SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-collection" class="hidden w-full max-w-4xl mx-auto my-auto flex flex-col items-center py-4 px-3">
+        <div class="bg-amber-50/95 backdrop-blur-md rounded-3xl p-4 sm:p-7 shadow-2xl border-4 border-amber-300 w-full flex flex-col max-h-[85dvh]">
+          
+          <!-- Collection Header -->
+          <div class="flex items-center justify-between border-b-2 border-amber-200 pb-3 mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="bg-amber-400 text-amber-950 p-2 rounded-2xl shadow">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                </svg>
+              </span>
+              <div>
+                <h2 id="collection-title" class="text-xl sm:text-3xl font-black text-amber-900 leading-tight">
+                  Koleksi Haiwan Safari
+                </h2>
+                <p id="collection-subtitle" class="text-xs sm:text-sm font-bold text-amber-700">
+                  Ketahui nama dan saiz semua haiwan di dalam permainan!
+                </p>
+              </div>
+            </div>
+            <button onclick="goToHome()" class="p-2 text-amber-800 hover:bg-amber-200 rounded-2xl transition-colors">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+
+          <!-- Category Filter Chips -->
+          <div class="flex flex-wrap items-center justify-center gap-2 mb-3">
+            <button onclick="filterCollection('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all bg-amber-500 text-white border-2 border-amber-600">
+              <span data-i18n="filterAll">Semua</span> (<span id="count-all">0</span>)
+            </button>
+            <button onclick="filterCollection('farm')" id="filter-btn-farm" class="px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all bg-white text-emerald-800 border-2 border-emerald-300 hover:bg-emerald-50">
+              <span data-i18n="groupFarm">Ladang</span> (<span id="count-farm">0</span>)
+            </button>
+            <button onclick="filterCollection('wild')" id="filter-btn-wild" class="px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all bg-white text-amber-800 border-2 border-amber-300 hover:bg-amber-50">
+              <span data-i18n="groupWild">Liar</span> (<span id="count-wild">0</span>)
+            </button>
+            <button onclick="filterCollection('bird')" id="filter-btn-bird" class="px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all bg-white text-sky-800 border-2 border-sky-300 hover:bg-sky-50">
+              <span data-i18n="groupBird">Burung</span> (<span id="count-bird">0</span>)
+            </button>
+            <button onclick="filterCollection('sea')" id="filter-btn-sea" class="px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all bg-white text-blue-800 border-2 border-blue-300 hover:bg-blue-50">
+              <span data-i18n="groupSea">Laut</span> (<span id="count-sea">0</span>)
+            </button>
+            <button onclick="filterCollection('insect')" id="filter-btn-insect" class="px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all bg-white text-purple-800 border-2 border-purple-300 hover:bg-purple-50">
+              <span data-i18n="groupInsect">Kecil / Serangga</span> (<span id="count-insect">0</span>)
+            </button>
+          </div>
+
+          <!-- Animals Gallery Grid Container -->
+          <div id="collection-grid" class="flex-1 overflow-y-auto pr-1 grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 sm:gap-3.5 pb-2">
+            <!-- Dynamically populated animal cards -->
+          </div>
+
+          <!-- Footer button inside collection -->
+          <div class="pt-3 border-t-2 border-amber-200 mt-2 flex justify-between items-center">
+            <span class="text-xs font-bold text-amber-700 hidden sm:inline" data-i18n="collectionHint">
+              Tekan mana-mana kad untuk mendengar sebutan!
+            </span>
+            <button onclick="goToHome()" class="btn-bubbly px-6 py-2.5 bg-gradient-to-b from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-amber-950 font-black text-sm rounded-2xl shadow-md border-b-3 border-amber-700 ml-auto">
+              <span data-i18n="btnHome">Kembali ke Laman Utama</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 2: HOW TO PLAY SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-how" class="hidden w-full max-w-2xl mx-auto my-auto flex flex-col items-center py-4 px-3">
+        <div class="bg-amber-50/95 backdrop-blur-md rounded-3xl p-5 sm:p-7 shadow-2xl border-4 border-amber-300 w-full">
+          <div class="flex items-center justify-between border-b-2 border-amber-200 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="bg-amber-400 text-amber-950 p-2 rounded-2xl">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+                </svg>
+              </span>
+              <h2 id="how-title" class="text-2xl sm:text-3xl font-black text-amber-900">Cara Bermain</h2>
+            </div>
+            <button onclick="goToHome()" class="p-1.5 text-amber-800 hover:bg-amber-200 rounded-xl">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+
+          <!-- 3 Visual Steps -->
+          <div class="space-y-3 sm:space-y-4 mb-6">
+            <!-- Step 1 -->
+            <div class="flex items-center gap-3.5 bg-amber-100/80 p-3.5 rounded-2xl border-2 border-amber-200">
+              <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white font-black text-lg flex items-center justify-center shrink-0 shadow">
+                1
+              </div>
+              <div>
+                <h3 id="step1-title" class="font-bold text-amber-900 text-base sm:text-lg">Lihat saiz haiwan.</h3>
+                <p id="step1-desc" class="text-xs sm:text-sm text-amber-800">Perhatikan badan setiap haiwan di safari dengan teliti.</p>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex items-center gap-3.5 bg-amber-100/80 p-3.5 rounded-2xl border-2 border-amber-200">
+              <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white font-black text-lg flex items-center justify-center shrink-0 shadow">
+                2
+              </div>
+              <div>
+                <h3 id="step2-title" class="font-bold text-amber-900 text-base sm:text-lg">Bandingkan haiwan.</h3>
+                <p id="step2-desc" class="text-xs sm:text-sm text-amber-800">Tentukan yang mana paling kecil dan yang mana paling besar.</p>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex items-center gap-3.5 bg-amber-100/80 p-3.5 rounded-2xl border-2 border-amber-200">
+              <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white font-black text-lg flex items-center justify-center shrink-0 shadow">
+                3
+              </div>
+              <div>
+                <h3 id="step3-title" class="font-bold text-amber-900 text-base sm:text-lg">Susun haiwan mengikut arahan.</h3>
+                <p id="step3-desc" class="text-xs sm:text-sm text-amber-800">Tarik gambar haiwan ke dalam kotak susunan bernombor!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Example with realistic animal cards -->
+          <div class="bg-amber-200/60 p-3 rounded-2xl border-2 border-amber-300/80 mb-6 text-center">
+            <div class="text-xs font-bold text-amber-900 mb-2 uppercase tracking-wide" data-i18n="howExampleLabel">Contoh Susunan: Paling Kecil → Paling Besar</div>
+            <div class="flex items-center justify-center gap-2 sm:gap-4">
+              <!-- Mini Mouse -->
+              <div class="flex flex-col items-center">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-xl shadow-md p-1 flex items-center justify-center border-2 border-amber-300">
+                  <img src="https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=150&auto=format&fit=crop&q=80" alt="Mouse" class="w-full h-full object-contain rounded-lg" onerror="renderFallbackImage(this, 'mouse')">
+                </div>
+                <span class="text-[11px] font-bold text-amber-900 mt-1">1</span>
+              </div>
+
+              <!-- Arrow -->
+              <svg class="w-5 h-5 text-amber-600 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+
+              <!-- Mini Cat -->
+              <div class="flex flex-col items-center">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-xl shadow-md p-1 flex items-center justify-center border-2 border-amber-300">
+                  <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&auto=format&fit=crop&q=80" alt="Cat" class="w-full h-full object-contain rounded-lg" onerror="renderFallbackImage(this, 'cat')">
+                </div>
+                <span class="text-[11px] font-bold text-amber-900 mt-1">2</span>
+              </div>
+
+              <!-- Arrow -->
+              <svg class="w-5 h-5 text-amber-600 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+
+              <!-- Mini Elephant -->
+              <div class="flex flex-col items-center">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-xl shadow-md p-1 flex items-center justify-center border-2 border-amber-300">
+                  <img src="https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=150&auto=format&fit=crop&q=80" alt="Elephant" class="w-full h-full object-contain rounded-lg" onerror="renderFallbackImage(this, 'elephant')">
+                </div>
+                <span class="text-[11px] font-bold text-amber-900 mt-1">3</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <button onclick="goToSessionSelection()" class="btn-bubbly w-full py-3.5 bg-gradient-to-b from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-lg sm:text-xl rounded-2xl shadow-xl border-b-4 border-emerald-800 flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <span id="btn-how-start">Mula Bermain</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 3: SESSION SELECTION SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-session" class="hidden w-full max-w-xl mx-auto my-auto flex flex-col items-center py-4 px-3">
+        <div class="bg-amber-50/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-4 border-amber-300 w-full text-center">
+          <div class="inline-block bg-amber-200 text-amber-900 p-3 rounded-2xl mb-3 shadow-inner">
+            <svg class="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+            </svg>
+          </div>
+
+          <h2 id="session-title" class="text-2xl sm:text-3xl font-black text-amber-900 mb-2">
+            Pilih Bilangan Soalan
+          </h2>
+          <p id="session-desc" class="text-sm sm:text-base font-bold text-amber-700 mb-6">
+            Berapa banyak cabaran safari yang kamu mahu selesaikan?
+          </p>
+
+          <!-- 3 Options: 5, 10, 15 Questions -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
+            <!-- 5 Questions -->
+            <button onclick="startSession(5)" class="btn-bubbly group bg-gradient-to-b from-white to-amber-100 hover:to-amber-200 p-4 rounded-2xl border-3 border-amber-300 shadow-md hover:shadow-xl flex flex-col items-center">
+              <span class="text-3xl sm:text-4xl font-black text-amber-800 group-hover:scale-110 transition-transform">5</span>
+              <span class="font-bold text-amber-900 text-sm mt-1" data-i18n="opt5">5 Soalan</span>
+              <span class="text-[11px] text-amber-600 font-semibold" data-i18n="opt5Desc">Cepat & Santai</span>
+            </button>
+
+            <!-- 10 Questions (Recommended) -->
+            <button onclick="startSession(10)" class="btn-bubbly group relative bg-gradient-to-b from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 p-4 rounded-2xl border-3 border-yellow-600 shadow-lg hover:shadow-xl flex flex-col items-center">
+              <span class="absolute -top-3 bg-red-500 text-white font-black text-[10px] uppercase px-2 py-0.5 rounded-full shadow" data-i18n="popularBadge">Pilihan Popular</span>
+              <span class="text-3xl sm:text-4xl font-black text-amber-950 group-hover:scale-110 transition-transform">10</span>
+              <span class="font-black text-amber-950 text-sm mt-1" data-i18n="opt10">10 Soalan</span>
+              <span class="text-[11px] text-amber-900 font-bold" data-i18n="opt10Desc">Sangat Sesuai</span>
+            </button>
+
+            <!-- 15 Questions -->
+            <button onclick="startSession(15)" class="btn-bubbly group bg-gradient-to-b from-white to-amber-100 hover:to-amber-200 p-4 rounded-2xl border-3 border-amber-300 shadow-md hover:shadow-xl flex flex-col items-center">
+              <span class="text-3xl sm:text-4xl font-black text-amber-800 group-hover:scale-110 transition-transform">15</span>
+              <span class="font-bold text-amber-900 text-sm mt-1" data-i18n="opt15">15 Soalan</span>
+              <span class="text-[11px] text-amber-600 font-semibold" data-i18n="opt15Desc">Jaguh Safari</span>
+            </button>
+          </div>
+
+          <button onclick="goToHome()" class="btn-bubbly py-2.5 px-6 bg-amber-200/80 hover:bg-amber-300 text-amber-900 font-bold text-sm rounded-xl">
+            <span data-i18n="btnCancel">Kembali ke Laman Utama</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 4: GAMEPLAY SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-game" class="hidden w-full max-w-4xl mx-auto flex flex-col items-center">
+        <!-- Status Bar: Progress & Score -->
+        <div class="w-full bg-amber-50/95 backdrop-blur-md rounded-2xl px-4 py-2.5 shadow-md border-2 border-amber-300 flex items-center justify-between gap-2 mb-3">
+          <!-- Question progress indicator -->
+          <div class="flex items-center gap-2">
+            <span class="bg-amber-500 text-white font-black text-xs px-2.5 py-1 rounded-xl shadow-sm" id="game-progress-badge">
+              Soalan 1 / 5
+            </span>
+            <span id="game-progress-text" class="text-xs sm:text-sm font-bold text-amber-900 hidden sm:inline">
+              Soalan 1 daripada 5
+            </span>
+          </div>
+
+          <!-- Current Score -->
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 bg-amber-200/80 px-3 py-1 rounded-xl">
+              <svg class="w-5 h-5 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+              </svg>
+              <span class="text-xs font-bold text-amber-800" data-i18n="scoreLabel">Skor:</span>
+              <span id="game-current-score" class="text-base sm:text-lg font-black text-amber-950">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instruction Card with Speaker button -->
+        <div class="w-full bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 backdrop-blur-md rounded-3xl p-3.5 sm:p-4 shadow-xl border-3 border-amber-300 mb-3 text-center flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex items-center gap-3 text-left w-full sm:w-auto">
+            <button onclick="speakCurrentInstruction()" class="btn-bubbly bg-yellow-400 hover:bg-yellow-300 text-amber-950 p-2.5 rounded-2xl border-2 border-yellow-500 shadow-md shrink-0">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </button>
+            <div>
+              <div id="game-instruction-title" class="text-base sm:text-xl font-black text-amber-950 leading-snug">
+                Susun daripada paling kecil kepada paling besar.
+              </div>
+              <div id="game-instruction-sub" class="text-xs font-bold text-amber-700">
+                Tarik setiap haiwan ke dalam kotak yang betul.
+              </div>
+            </div>
+          </div>
+
+          <!-- Check Arrangement Button (Only shown when not auto-checking) -->
+          <button id="btn-check-arrangement" onclick="verifyArrangementAnswer()" class="btn-bubbly px-5 py-2.5 bg-gradient-to-b from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-sm sm:text-base rounded-2xl shadow-lg border-b-3 border-emerald-800 shrink-0 w-full sm:w-auto">
+            <span data-i18n="btnCheck">Semak Jawapan</span>
+          </button>
+        </div>
+
+        <!-- ACTIVE PLAY AREA 1: DRAG-AND-DROP ARRANGEMENT MODE -->
+        <div id="mode-arrange" class="w-full flex flex-col items-center gap-4">
+          <!-- Target Ordered Drop Slots Area -->
+          <div class="w-full bg-amber-950/25 backdrop-blur-md rounded-3xl p-3 sm:p-5 border-2 border-amber-300/40 shadow-inner">
+            <div class="flex items-center justify-between mb-2 px-1">
+              <span id="slot-direction-label-left" class="text-xs sm:text-sm font-black text-white drop-shadow bg-amber-900/60 px-2.5 py-1 rounded-xl">
+                1: Paling Kecil
+              </span>
+              <svg class="w-5 h-5 text-amber-200 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+              </svg>
+              <span id="slot-direction-label-right" class="text-xs sm:text-sm font-black text-white drop-shadow bg-amber-900/60 px-2.5 py-1 rounded-xl">
+                Paling Besar
+              </span>
+            </div>
+
+            <!-- Target Slots Grid -->
+            <div id="arrangement-slots-container" class="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3.5 w-full justify-center">
+              <!-- Dynamically populated target slots -->
+            </div>
+          </div>
+
+          <!-- Origin Draggable Animals Pool -->
+          <div class="w-full bg-white/70 backdrop-blur-md rounded-3xl p-3 sm:p-4 border-2 border-white/60 shadow-lg">
+            <div class="text-xs font-bold text-amber-900 mb-2 px-1 flex items-center justify-between">
+              <span data-i18n="poolLabel">Pilihan Haiwan Safari (Tarik ke atas):</span>
+              <span class="text-[11px] text-amber-700 font-semibold" data-i18n="dragHint">Gunakan jari atau tetikus</span>
+            </div>
+            <!-- Draggable Cards Pool Container -->
+            <div id="arrangement-cards-container" class="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 min-h-[110px] p-2">
+              <!-- Dynamically populated draggable animal cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVE PLAY AREA 2: MANDATORY DRAG-TO-CONNECT ACTIVITY MODE -->
+        <div id="mode-connect" class="hidden w-full bg-white/75 backdrop-blur-md rounded-3xl p-4 sm:p-6 border-3 border-amber-300 shadow-xl relative">
+          <div class="text-center mb-4">
+            <span class="bg-purple-100 text-purple-900 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider border border-purple-300" data-i18n="connectBadge">
+              Aktiviti Suai Padan Saiz
+            </span>
+            <h3 id="connect-title" class="text-lg sm:text-2xl font-black text-amber-900 mt-1">
+              Padankan haiwan ke kategori saiz yang betul!
+            </h3>
+            <p id="connect-subtitle" class="text-xs sm:text-sm font-bold text-amber-700">
+              Tarik dari bulatan haiwan ke bulatan kategori saiz.
+            </p>
+          </div>
+
+          <!-- Matching Two-Column Layout -->
+          <div class="grid grid-cols-2 gap-4 sm:gap-12 relative z-20 py-2">
+            <!-- Left Animals Column -->
+            <div id="connect-left-column" class="flex flex-col gap-4 items-end">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Right Size Targets Column -->
+            <div id="connect-right-column" class="flex flex-col gap-4 items-start">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Gentle Feedback Toast Notification -->
+        <div id="game-feedback-banner" class="opacity-0 transition-all duration-300 mt-3 px-5 py-2.5 rounded-2xl text-center font-black text-sm sm:text-base shadow-xl flex items-center justify-center gap-2 max-w-md">
+          <span id="feedback-icon"></span>
+          <span id="feedback-text">Tahniah!</span>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 5: RESULT SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-result" class="hidden w-full max-w-xl mx-auto my-auto flex flex-col items-center py-4 px-3">
+        <div class="bg-amber-50/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-4 border-amber-300 w-full text-center">
+          
+          <!-- Cheerful Result SVG Mascot Graphic -->
+          <div class="w-28 h-28 mx-auto mb-2 animate-float">
+            <svg class="w-full h-full drop-shadow-lg" viewBox="0 0 100 100" fill="none">
+              <!-- Trophy & Star Garland -->
+              <path d="M 30 25 L 70 25 L 65 55 C 65 65 55 70 50 70 C 45 70 35 65 35 55 Z" fill="#FACC15" stroke="#CA8A04" stroke-width="2" />
+              <path d="M 30 32 C 18 32 18 48 30 50" stroke="#EAB308" stroke-width="3" stroke-linecap="round" fill="none" />
+              <path d="M 70 32 C 82 32 82 48 70 50" stroke="#EAB308" stroke-width="3" stroke-linecap="round" fill="none" />
+              <rect x="44" y="70" width="12" height="12" fill="#CA8A04" />
+              <rect x="36" y="82" width="28" height="8" rx="2" fill="#A16207" />
+              <!-- Star inside trophy -->
+              <polygon points="50,36 53,44 61,44 55,49 57,57 50,52 43,57 45,49 39,44 47,44" fill="#FFFFFF" />
+            </svg>
+          </div>
+
+          <h2 id="result-title" class="text-3xl sm:text-4xl font-black text-amber-900 mb-1">
+            Tahniah!
+          </h2>
+          <p id="result-subtitle" class="text-base font-bold text-amber-700 mb-5">
+            Hebat! Kamu telah berjaya menyusun semua haiwan!
+          </p>
+
+          <!-- Result Stat Grid -->
+          <div class="grid grid-cols-2 gap-3 mb-6 text-left">
+            <div class="bg-amber-100/90 p-3.5 rounded-2xl border-2 border-amber-200">
+              <span class="text-xs font-bold text-amber-700 block" data-i18n="resAnswered">Soalan Dijawab</span>
+              <span id="res-stat-answered" class="text-2xl font-black text-amber-950">10</span>
+            </div>
+
+            <div class="bg-emerald-100/90 p-3.5 rounded-2xl border-2 border-emerald-300">
+              <span class="text-xs font-bold text-emerald-800 block" data-i18n="resCorrect">Jawapan Betul</span>
+              <span id="res-stat-correct" class="text-2xl font-black text-emerald-950">10</span>
+            </div>
+
+            <div class="bg-sky-100/90 p-3.5 rounded-2xl border-2 border-sky-300">
+              <span class="text-xs font-bold text-sky-800 block" data-i18n="resAccuracy">Ketepatan</span>
+              <span id="res-stat-accuracy" class="text-2xl font-black text-sky-950">100%</span>
+            </div>
+
+            <div class="bg-purple-100/90 p-3.5 rounded-2xl border-2 border-purple-300">
+              <span class="text-xs font-bold text-purple-800 block" data-i18n="resBest">Skor Terbaik</span>
+              <span id="res-stat-best" class="text-2xl font-black text-purple-950">10</span>
+            </div>
+          </div>
+
+          <!-- Buttons: Play Again & Back Home -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button onclick="playAgainFreshSession()" class="btn-bubbly flex-1 py-3.5 bg-gradient-to-b from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-lg rounded-2xl shadow-xl border-b-4 border-emerald-800 flex items-center justify-center gap-2">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+              </svg>
+              <span data-i18n="btnPlayAgain">Main Lagi</span>
+            </button>
+
+            <button onclick="goToHome()" class="btn-bubbly flex-1 py-3.5 bg-gradient-to-b from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-amber-950 font-black text-lg rounded-2xl shadow-xl border-b-4 border-amber-700 flex items-center justify-center gap-2">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+              <span data-i18n="btnHome">Kembali ke Laman Utama</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 6: PLAYER PROFILE MODAL / SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-profile" class="hidden fixed inset-0 z-50 bg-amber-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-amber-50 rounded-3xl p-6 sm:p-8 shadow-2xl border-4 border-amber-300 w-full max-w-lg max-h-[90dvh] overflow-y-auto">
+          
+          <div class="flex items-center justify-between border-b-2 border-amber-200 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="bg-amber-400 text-amber-950 p-2 rounded-2xl shadow">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+              </span>
+              <h2 class="text-2xl font-black text-amber-900" data-i18n="profileTitle">Profil Pemain</h2>
+            </div>
+            <button onclick="closeProfileScreen()" class="p-1.5 text-amber-800 hover:bg-amber-200 rounded-xl">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+
+          <!-- Name & Family Code Form -->
+          <div class="space-y-3 mb-5">
+            <div>
+              <label class="block text-xs font-bold text-amber-900 mb-1" data-i18n="lblPlayerName">Nama Pemain</label>
+              <input type="text" id="input-player-name" class="w-full px-4 py-2.5 rounded-xl border-2 border-amber-300 focus:border-amber-500 bg-white font-bold text-amber-900 outline-none text-sm" placeholder="Contoh: Adik Danial" onchange="saveProfileData()">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-amber-900 mb-1" data-i18n="lblFamilyCode">Family Code</label>
+              <input type="text" id="input-family-code" class="w-full px-4 py-2.5 rounded-xl border-2 border-amber-300 focus:border-amber-500 bg-white font-bold text-amber-900 outline-none text-sm" placeholder="" value="" onchange="saveProfileData()">
+              <span class="text-[11px] text-amber-600 font-medium" data-i18n="familyCodeHint">Dikosongkan secara lalai.</span>
+            </div>
+          </div>
+
+          <!-- Profile Stats Display -->
+          <div class="grid grid-cols-2 gap-2.5 mb-5 text-left">
+            <div class="bg-amber-100 p-3 rounded-xl border border-amber-200">
+              <span class="text-[11px] font-bold text-amber-700 block" data-i18n="lblGamesPlayed">Permainan Dimainkan</span>
+              <span id="prof-games-played" class="text-xl font-black text-amber-950">0</span>
+            </div>
+
+            <div class="bg-amber-100 p-3 rounded-xl border border-amber-200">
+              <span class="text-[11px] font-bold text-amber-700 block" data-i18n="lblQuestionsAnswered">Soalan Dijawab</span>
+              <span id="prof-questions-answered" class="text-xl font-black text-amber-950">0</span>
+            </div>
+
+            <div class="bg-emerald-100 p-3 rounded-xl border border-emerald-200">
+              <span class="text-[11px] font-bold text-emerald-800 block" data-i18n="lblCorrectAnswers">Jawapan Betul</span>
+              <span id="prof-correct-answers" class="text-xl font-black text-emerald-950">0</span>
+            </div>
+
+            <div class="bg-sky-100 p-3 rounded-xl border border-sky-200">
+              <span class="text-[11px] font-bold text-sky-800 block" data-i18n="lblBestScore">Skor Terbaik</span>
+              <span id="prof-best-score" class="text-xl font-black text-sky-950">0</span>
+            </div>
+
+            <div class="col-span-2 bg-purple-100 p-3 rounded-xl border border-purple-200 flex items-center justify-between">
+              <span class="text-xs font-bold text-purple-800" data-i18n="lblAccuracy">Ketepatan Keseluruhan</span>
+              <span id="prof-accuracy" class="text-lg font-black text-purple-950">0%</span>
+            </div>
+          </div>
+
+          <!-- Recent Activity Log -->
+          <div class="mb-5">
+            <h4 class="text-xs font-bold text-amber-900 mb-2 uppercase tracking-wide" data-i18n="lblRecentActivity">Aktiviti Terkini</h4>
+            <div id="prof-recent-activity" class="bg-white/80 rounded-xl p-3 border border-amber-200 text-xs font-semibold text-amber-800 max-h-28 overflow-y-auto space-y-1.5">
+              <div class="text-amber-500 italic" data-i18n="noActivityYet">Belum ada aktiviti direkodkan. Jom bermain!</div>
+            </div>
+          </div>
+
+          <!-- Close button -->
+          <button onclick="closeProfileScreen()" class="btn-bubbly w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-black text-base rounded-2xl shadow-md border-b-3 border-amber-700">
+            <span data-i18n="btnCloseProfile">Simpan & Tutup</span>
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- IMMUTABLE REQUIRED FOOTER -->
+    <footer class="relative z-20 w-full py-2 text-center text-[11px] sm:text-xs font-bold text-amber-900/80 bg-amber-200/40 backdrop-blur-sm pointer-events-none">
+      Kinder Klub | All Rights Reserved
+    </footer>
+
+  </div>
+
+  <script>
+    /* ======================================================================
+       16. ANIMAL IMAGE URLS - CLEARLY LABELLED DATA SECTION
+       Converted direct image URLs from user's provided Pexels photos.
+       Category: "small" / "medium" / "large" (for size sorting & matching)
+       Group: "farm" | "wild" | "bird" | "sea" | "insect"
+       ====================================================================== */
+    const animalImages = [
+      // --- Haiwan Ladang & Peliharaan (Farm Animals - 12) ---
+      {
+        id: "cat",
+        nameBM: "Kucing",
+        nameEN: "Cat",
+        sizeRating: 5,
+        heightRating: 4,
+        category: "medium",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/36401636/pexels-photo-36401636.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "dog",
+        nameBM: "Anjing",
+        nameEN: "Dog",
+        sizeRating: 7,
+        heightRating: 6,
+        category: "medium",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/23849245/pexels-photo-23849245.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "cow",
+        nameBM: "Lembu",
+        nameEN: "Cow",
+        sizeRating: 14,
+        heightRating: 9,
+        category: "large",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/5633476/pexels-photo-5633476.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "chicken",
+        nameBM: "Ayam",
+        nameEN: "Chicken",
+        sizeRating: 2.5,
+        heightRating: 2.5,
+        category: "small",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/16232853/pexels-photo-16232853.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "rooster",
+        nameBM: "Ayam Jantan",
+        nameEN: "Rooster",
+        sizeRating: 3,
+        heightRating: 3,
+        category: "small",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/33809642/pexels-photo-33809642.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "duck",
+        nameBM: "Itik",
+        nameEN: "Duck",
+        sizeRating: 3.5,
+        heightRating: 2.8,
+        category: "small",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/30723220/pexels-photo-30723220.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "goat",
+        nameBM: "Kambing",
+        nameEN: "Goat",
+        sizeRating: 8.5,
+        heightRating: 7,
+        category: "medium",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/37599195/pexels-photo-37599195.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "sheep",
+        nameBM: "Biri-biri",
+        nameEN: "Sheep",
+        sizeRating: 9.0,
+        heightRating: 7.2,
+        category: "medium",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/35608813/pexels-photo-35608813.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "horse",
+        nameBM: "Kuda",
+        nameEN: "Horse",
+        sizeRating: 14.5,
+        heightRating: 12,
+        category: "large",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/32711198/pexels-photo-32711198.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "rabbit",
+        nameBM: "Arnab",
+        nameEN: "Rabbit",
+        sizeRating: 2.2,
+        heightRating: 2,
+        category: "small",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/4001296/pexels-photo-4001296.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "goose",
+        nameBM: "Angsa",
+        nameEN: "Goose",
+        sizeRating: 4.2,
+        heightRating: 4,
+        category: "small",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/38738293/pexels-photo-38738293.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "donkey",
+        nameBM: "Keldai",
+        nameEN: "Donkey",
+        sizeRating: 11,
+        heightRating: 9.5,
+        category: "large",
+        group: "farm",
+        imageUrl: "https://images.pexels.com/photos/18771835/pexels-photo-18771835.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+
+      // --- Haiwan Liar (Wild Animals - 18) ---
+      {
+        id: "lion",
+        nameBM: "Singa",
+        nameEN: "Lion",
+        sizeRating: 12,
+        heightRating: 8.5,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/25842082/pexels-photo-25842082.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "tiger",
+        nameBM: "Harimau",
+        nameEN: "Tiger",
+        sizeRating: 12.5,
+        heightRating: 8.8,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/27834731/pexels-photo-27834731.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "elephant",
+        nameBM: "Gajah",
+        nameEN: "Elephant",
+        sizeRating: 20,
+        heightRating: 15,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/17081254/pexels-photo-17081254.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "giraffe",
+        nameBM: "Zirafah",
+        nameEN: "Giraffe",
+        sizeRating: 16,
+        heightRating: 22,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/34220435/pexels-photo-34220435.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "zebra",
+        nameBM: "Kuda Belang",
+        nameEN: "Zebra",
+        sizeRating: 11.5,
+        heightRating: 10,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/39440659/pexels-photo-39440659.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "monkey",
+        nameBM: "Monyet",
+        nameEN: "Monkey",
+        sizeRating: 4.8,
+        heightRating: 4.2,
+        category: "medium",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/13463445/pexels-photo-13463445.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "bear",
+        nameBM: "Beruang",
+        nameEN: "Bear",
+        sizeRating: 15,
+        heightRating: 10,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/32739864/pexels-photo-32739864.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "panda",
+        nameBM: "Panda",
+        nameEN: "Panda",
+        sizeRating: 10.5,
+        heightRating: 7.5,
+        category: "medium",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/33797167/pexels-photo-33797167.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "deer",
+        nameBM: "Rusa",
+        nameEN: "Deer",
+        sizeRating: 9.5,
+        heightRating: 8.5,
+        category: "medium",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/3736574/pexels-photo-3736574.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "fox",
+        nameBM: "Musang",
+        nameEN: "Fox",
+        sizeRating: 5.2,
+        heightRating: 4.5,
+        category: "medium",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/32399356/pexels-photo-32399356.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "wolf",
+        nameBM: "Serigala",
+        nameEN: "Wolf",
+        sizeRating: 7.8,
+        heightRating: 6.8,
+        category: "medium",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/7449039/pexels-photo-7449039.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "hippopotamus",
+        nameBM: "Badak Air",
+        nameEN: "Hippopotamus",
+        sizeRating: 18,
+        heightRating: 9,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/36497813/pexels-photo-36497813.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "rhinoceros",
+        nameBM: "Badak Sumbu",
+        nameEN: "Rhinoceros",
+        sizeRating: 18.5,
+        heightRating: 9.5,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/1524627/pexels-photo-1524627.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "crocodile",
+        nameBM: "Buaya",
+        nameEN: "Crocodile",
+        sizeRating: 13,
+        heightRating: 3.5,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/37636513/pexels-photo-37636513.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "kangaroo",
+        nameBM: "Kanggaru",
+        nameEN: "Kangaroo",
+        sizeRating: 8.2,
+        heightRating: 9.2,
+        category: "medium",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/27110777/pexels-photo-27110777.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "camel",
+        nameBM: "Unta",
+        nameEN: "Camel",
+        sizeRating: 15.5,
+        heightRating: 14,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/17877123/pexels-photo-17877123.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "koala",
+        nameBM: "Koala",
+        nameEN: "Koala",
+        sizeRating: 4.5,
+        heightRating: 4,
+        category: "medium",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/14971555/pexels-photo-14971555.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "gorilla",
+        nameBM: "Gorila",
+        nameEN: "Gorilla",
+        sizeRating: 13.5,
+        heightRating: 10,
+        category: "large",
+        group: "wild",
+        imageUrl: "https://images.pexels.com/photos/36804638/pexels-photo-36804638.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+
+      // --- Burung (Birds - 10) ---
+      {
+        id: "parrot",
+        nameBM: "Burung Nuri",
+        nameEN: "Parrot",
+        sizeRating: 1.5,
+        heightRating: 2,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/28863971/pexels-photo-28863971.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "owl",
+        nameBM: "Burung Hantu",
+        nameEN: "Owl",
+        sizeRating: 2.2,
+        heightRating: 3.2,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/25559342/pexels-photo-25559342.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "eagle",
+        nameBM: "Burung Helang",
+        nameEN: "Eagle",
+        sizeRating: 3.8,
+        heightRating: 5.5,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/14617656/pexels-photo-14617656.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "flamingo",
+        nameBM: "Flamingo",
+        nameEN: "Flamingo",
+        sizeRating: 4.2,
+        heightRating: 10,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/37111071/pexels-photo-37111071.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "penguin",
+        nameBM: "Penguin",
+        nameEN: "Penguin",
+        sizeRating: 3.0,
+        heightRating: 4.5,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/36732833/pexels-photo-36732833.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "peacock",
+        nameBM: "Burung Merak",
+        nameEN: "Peacock",
+        sizeRating: 3.5,
+        heightRating: 5.0,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/4618412/pexels-photo-4618412.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "ostrich",
+        nameBM: "Burung Unta",
+        nameEN: "Ostrich",
+        sizeRating: 7.0,
+        heightRating: 14,
+        category: "medium",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/7564762/pexels-photo-7564762.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "pigeon",
+        nameBM: "Burung Merpati",
+        nameEN: "Pigeon",
+        sizeRating: 1.2,
+        heightRating: 1.8,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/6438048/pexels-photo-6438048.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "pelican",
+        nameBM: "Burung Pelikan",
+        nameEN: "Pelican",
+        sizeRating: 3.6,
+        heightRating: 5.5,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/18016138/pexels-photo-18016138.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "woodpecker",
+        nameBM: "Burung Belatuk",
+        nameEN: "Woodpecker",
+        sizeRating: 1.0,
+        heightRating: 1.5,
+        category: "small",
+        group: "bird",
+        imageUrl: "https://images.pexels.com/photos/4870289/pexels-photo-4870289.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+
+      // --- Hidupan Laut & Air (Sea Animals - 10) ---
+      {
+        id: "fish",
+        nameBM: "Ikan",
+        nameEN: "Fish",
+        sizeRating: 0.9,
+        heightRating: 0.8,
+        category: "small",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/37659290/pexels-photo-37659290.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "dolphin",
+        nameBM: "Ikan Lumba-lumba",
+        nameEN: "Dolphin",
+        sizeRating: 13,
+        heightRating: 5.5,
+        category: "large",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/17528249/pexels-photo-17528249.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "whale",
+        nameBM: "Ikan Paus",
+        nameEN: "Whale",
+        sizeRating: 25,
+        heightRating: 12,
+        category: "large",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/5045962/pexels-photo-5045962.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "shark",
+        nameBM: "Ikan Yu",
+        nameEN: "Shark",
+        sizeRating: 15,
+        heightRating: 6,
+        category: "large",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/18659795/pexels-photo-18659795.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "octopus",
+        nameBM: "Sotong Kurita",
+        nameEN: "Octopus",
+        sizeRating: 4.5,
+        heightRating: 3.5,
+        category: "medium",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/3663079/pexels-photo-3663079.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "crab",
+        nameBM: "Ketam",
+        nameEN: "Crab",
+        sizeRating: 1.6,
+        heightRating: 1.2,
+        category: "small",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/27649541/pexels-photo-27649541.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "turtle",
+        nameBM: "Penyu",
+        nameEN: "Turtle",
+        sizeRating: 7.5,
+        heightRating: 4,
+        category: "medium",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/10498909/pexels-photo-10498909.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "seahorse",
+        nameBM: "Kuda Laut",
+        nameEN: "Seahorse",
+        sizeRating: 0.7,
+        heightRating: 1.1,
+        category: "small",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/26706703/pexels-photo-26706703.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "jellyfish",
+        nameBM: "Obor-obor",
+        nameEN: "Jellyfish",
+        sizeRating: 2.2,
+        heightRating: 3.5,
+        category: "small",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/19557699/pexels-photo-19557699.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "seal",
+        nameBM: "Anjing Laut",
+        nameEN: "Seal",
+        sizeRating: 8.5,
+        heightRating: 5.5,
+        category: "medium",
+        group: "sea",
+        imageUrl: "https://images.pexels.com/photos/30417730/pexels-photo-30417730.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+
+      // --- Haiwan Kecil & Serangga (Small Animals & Insects - 5) ---
+      {
+        id: "butterfly",
+        nameBM: "Rama-rama",
+        nameEN: "Butterfly",
+        sizeRating: 0.4,
+        heightRating: 0.4,
+        category: "small",
+        group: "insect",
+        imageUrl: "https://images.pexels.com/photos/34079798/pexels-photo-34079798.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "bee",
+        nameBM: "Lebah",
+        nameEN: "Bee",
+        sizeRating: 0.2,
+        heightRating: 0.2,
+        category: "small",
+        group: "insect",
+        imageUrl: "https://images.pexels.com/photos/33813468/pexels-photo-33813468.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "ladybird",
+        nameBM: "Kumbang Kepik",
+        nameEN: "Ladybird",
+        sizeRating: 0.15,
+        heightRating: 0.15,
+        category: "small",
+        group: "insect",
+        imageUrl: "https://images.pexels.com/photos/12847243/pexels-photo-12847243.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "ant",
+        nameBM: "Semut",
+        nameEN: "Semut",
+        sizeRating: 0.08,
+        heightRating: 0.08,
+        category: "small",
+        group: "insect",
+        imageUrl: "https://images.pexels.com/photos/34784053/pexels-photo-34784053.jpeg?auto=compress&cs=tinysrgb&w=300"
+      },
+      {
+        id: "snail",
+        nameBM: "Siput",
+        nameEN: "Snail",
+        sizeRating: 0.5,
+        heightRating: 0.4,
+        category: "small",
+        group: "insect",
+        imageUrl: "https://images.pexels.com/photos/36919759/pexels-photo-36919759.jpeg?auto=compress&cs=tinysrgb&w=300"
+      }
+    ];
+
+    /* ======================================================================
+       TRANSLATIONS DICTIONARY (Strict Malaysian Malay & English)
+       ====================================================================== */
+    const i18n = {
+      bm: {
+        navHome: "Laman Utama",
+        navCollection: "Koleksi",
+        navProfile: "Profil",
+        mascotTitle: "Renjer Safari",
+        tagTouch: "Tarik & Susun",
+        tagVoice: "Suara BM & EN",
+        homeTitle: "Susun Haiwan",
+        homeSubtitle: "Jom susun haiwan ikut saiz!",
+        btnStart: "Mula Bermain",
+        btnHow: "Cara Main",
+        btnCollection: "Koleksi",
+        btnProfile: "Profil",
+        collectionTitle: "Koleksi Haiwan Safari",
+        collectionSubtitle: "Ketahui nama dan saiz semua haiwan di dalam permainan!",
+        collectionHint: "Tekan mana-mana kad untuk mendengar sebutan!",
+        filterAll: "Semua",
+        groupFarm: "Ladang",
+        groupWild: "Liar",
+        groupBird: "Burung",
+        groupSea: "Laut",
+        groupInsect: "Kecil / Serangga",
+        howTitle: "Cara Bermain",
+        step1Title: "Lihat saiz haiwan.",
+        step1Desc: "Perhatikan badan setiap haiwan di safari dengan teliti.",
+        step2Title: "Bandingkan haiwan.",
+        step2Desc: "Tentukan yang mana paling kecil dan yang mana paling besar.",
+        step3Title: "Susun haiwan mengikut arahan.",
+        step3Desc: "Tarik gambar haiwan ke dalam kotak susunan bernombor!",
+        howExampleLabel: "Contoh Susunan: Paling Kecil → Paling Besar",
+        sessionTitle: "Pilih Bilangan Soalan",
+        sessionDesc: "Berapa banyak cabaran safari yang kamu mahu selesaikan?",
+        opt5: "5 Soalan",
+        opt5Desc: "Cepat & Santai",
+        opt10: "10 Soalan",
+        opt10Desc: "Sangat Sesuai",
+        opt15: "15 Soalan",
+        opt15Desc: "Jaguh Safari",
+        popularBadge: "Pilihan Popular",
+        btnCancel: "Kembali ke Laman Utama",
+        scoreLabel: "Skor:",
+        questionProgress: "Soalan {current} daripada {total}",
+        btnCheck: "Semak Jawapan",
+        poolLabel: "Pilihan Haiwan Safari (Tarik ke atas):",
+        dragHint: "Gunakan jari atau tetikus",
+        connectBadge: "Aktiviti Suai Padan Saiz",
+        connectTitle: "Padankan haiwan ke kategori saiz yang betul!",
+        connectSubtitle: "Tarik dari bulatan haiwan ke bulatan kategori saiz.",
+        resTitle: "Tahniah!",
+        resSubtitle: "Hebat! Kamu telah berjaya menyusun semua haiwan!",
+        resAnswered: "Soalan Dijawab",
+        resCorrect: "Jawapan Betul",
+        resAccuracy: "Ketepatan",
+        resBest: "Skor Terbaik",
+        btnPlayAgain: "Main Lagi",
+        btnHome: "Kembali ke Laman Utama",
+        profileTitle: "Profil Pemain",
+        lblPlayerName: "Nama Pemain",
+        lblFamilyCode: "Family Code",
+        familyCodeHint: "Dikosongkan secara lalai.",
+        lblGamesPlayed: "Permainan Dimainkan",
+        lblQuestionsAnswered: "Soalan Dijawab",
+        lblCorrectAnswers: "Jawapan Betul",
+        lblBestScore: "Skor Terbaik",
+        lblAccuracy: "Ketepatan Keseluruhan",
+        lblRecentActivity: "Aktiviti Terkini",
+        noActivityYet: "Belum ada aktiviti direkodkan. Jom bermain!",
+        btnCloseProfile: "Simpan & Tutup",
+        feedbackCorrect: "Betul! Hebat menyusun haiwan!",
+        feedbackAlmost: "Kurang tepat! Teruskan ke soalan seterusnya.",
+        feedbackIncomplete: "Tarik semua haiwan ke dalam kotak dahulu ya!",
+        sizeSmall: "Kecil",
+        sizeMedium: "Sederhana",
+        sizeLarge: "Besar",
+        voiceOrderSmallBig: "Susun haiwan daripada paling kecil kepada paling besar.",
+        voiceOrderBigSmall: "Susun haiwan daripada paling besar kepada paling kecil.",
+        voiceOrderShortTall: "Susun haiwan daripada paling rendah kepada paling tinggi.",
+        voiceOrderByBody: "Susun haiwan mengikut saiz badannya.",
+        voiceConnect: "Padankan haiwan ke kumpulan saiz yang betul.",
+        dirSmallestToBiggest: "Paling kecil → paling besar",
+        dirBiggestToSmallest: "Paling besar → paling kecil",
+        dirShortestToTallest: "Paling rendah → paling tinggi",
+        dirBodySize: "Susun ikut saiz badan",
+        slotSmallLabel: "1: Paling Kecil",
+        slotBigLabel: "Paling Besar",
+        slotShortLabel: "1: Paling Rendah",
+        slotTallLabel: "Paling Tinggi"
+      },
+      en: {
+        navHome: "Home",
+        navCollection: "Collection",
+        navProfile: "Profile",
+        mascotTitle: "Safari Ranger",
+        tagTouch: "Drag & Arrange",
+        tagVoice: "BM & EN Voice",
+        homeTitle: "Arrange the Animals",
+        homeSubtitle: "Let's arrange the animals by size!",
+        btnStart: "Start Playing",
+        btnHow: "How to Play",
+        btnCollection: "Collection",
+        btnProfile: "Profile",
+        collectionTitle: "Safari Animal Collection",
+        collectionSubtitle: "Explore the names and sizes of all animals in the game!",
+        collectionHint: "Tap any card to hear the pronunciation!",
+        filterAll: "All",
+        groupFarm: "Farm",
+        groupWild: "Wild",
+        groupBird: "Birds",
+        groupSea: "Sea",
+        groupInsect: "Small / Insects",
+        howTitle: "How to Play",
+        step1Title: "Look at the animal sizes.",
+        step1Desc: "Observe the bodies of each safari animal carefully.",
+        step2Title: "Compare the animals.",
+        step2Desc: "Determine which one is the smallest and which is the biggest.",
+        step3Title: "Arrange the animals according to the instruction.",
+        step3Desc: "Drag the animal pictures into the numbered arrangement slots!",
+        howExampleLabel: "Arrangement Example: Smallest → Biggest",
+        sessionTitle: "Choose Number of Questions",
+        sessionDesc: "How many safari challenges would you like to solve?",
+        opt5: "5 Questions",
+        opt5Desc: "Quick & Easy",
+        opt10: "10 Questions",
+        opt10Desc: "Recommended",
+        opt15: "15 Questions",
+        opt15Desc: "Safari Master",
+        popularBadge: "Most Popular",
+        btnCancel: "Back to Home",
+        scoreLabel: "Score:",
+        questionProgress: "Question {current} of {total}",
+        btnCheck: "Check Answer",
+        poolLabel: "Safari Animal Choices (Drag up):",
+        dragHint: "Use touch or mouse",
+        connectBadge: "Size Matching Activity",
+        connectTitle: "Match each animal to the correct size category!",
+        connectSubtitle: "Drag from the animal circle to the size category circle.",
+        resTitle: "Well Done!",
+        resSubtitle: "Terrific! You arranged all the animals successfully!",
+        resAnswered: "Questions Answered",
+        resCorrect: "Correct Answers",
+        resAccuracy: "Accuracy",
+        resBest: "Best Score",
+        btnPlayAgain: "Play Again",
+        btnHome: "Back to Home",
+        profileTitle: "Player Profile",
+        lblPlayerName: "Player Name",
+        lblFamilyCode: "Family Code",
+        familyCodeHint: "Blank by default.",
+        lblGamesPlayed: "Games Played",
+        lblQuestionsAnswered: "Questions Answered",
+        lblCorrectAnswers: "Correct Answers",
+        lblBestScore: "Best Score",
+        lblAccuracy: "Overall Accuracy",
+        lblRecentActivity: "Recent Activity",
+        noActivityYet: "No activity recorded yet. Let's play!",
+        btnCloseProfile: "Save & Close",
+        feedbackCorrect: "Correct! Great animal arranging!",
+        feedbackAlmost: "Not quite! Moving to the next question.",
+        feedbackIncomplete: "Please drag all animals into the slots first!",
+        sizeSmall: "Small",
+        sizeMedium: "Medium",
+        sizeLarge: "Large",
+        voiceOrderSmallBig: "Arrange the animals from smallest to biggest.",
+        voiceOrderBigSmall: "Arrange the animals from biggest to smallest.",
+        voiceOrderShortTall: "Arrange the animals from shortest to tallest.",
+        voiceOrderByBody: "Arrange the animals according to their body size.",
+        voiceConnect: "Match the animals to the correct size group.",
+        dirSmallestToBiggest: "Smallest → biggest",
+        dirBiggestToSmallest: "Biggest → smallest",
+        dirShortestToTallest: "Shortest → tallest",
+        dirBodySize: "Arrange by body size",
+        slotSmallLabel: "1: Smallest",
+        slotBigLabel: "Biggest",
+        slotShortLabel: "1: Shortest",
+        slotTallLabel: "Tallest"
+      }
+    };
+
+    /* ======================================================================
+       GLOBAL APP STATE & AUDIO SYNTHESIZER
+       ====================================================================== */
+    let currentLang = 'bm';
+    let currentScreen = 'home';
+    let sessionTotalQuestions = 5;
+    let currentQuestionIndex = 0;
+    let currentScore = 0;
+    let sessionQuestions = [];
+    let currentQuestion = null;
+
+    // Slot assignments mapping: slotIndex -> animalId
+    let slotAssignments = {};
+
+    // Matching mode state
+    let connectedPairs = {};
+    let selectedConnectAnimal = null;
+    let isDrawingConnectLine = false;
+
+    // Web Audio Sound FX generator (Preschool-friendly synths)
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        if (type === 'snap') {
+          // Playful wooden pop
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(640, now + 0.08);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'correct') {
+          // Cheerful ascending arpeggio (C-E-G-C5)
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.28, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.22);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.24);
+          });
+        } else if (type === 'retry') {
+          // Gentle marimba two-tone (low, non-punishing)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(340, now);
+          osc.frequency.linearRampToValueAtTime(300, now + 0.18);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.24);
+        } else if (type === 'fanfare') {
+          // Safari Victory Fanfare
+          const fanfare = [392, 523, 659, 784, 1046];
+          fanfare.forEach((f, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(f, now + i * 0.12);
+            gain.gain.setValueAtTime(0.3, now + i * 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.12);
+            osc.stop(now + i * 0.12 + 0.38);
+          });
+        }
+      } catch (e) {
+        console.warn('Audio playback error', e);
+      }
+    }
+
+    // Web Speech API Voice synthesis
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.88; // Slow, clear for preschool children
+      utterance.pitch = 1.1; // Friendly tone
+      if (currentLang === 'bm') {
+        utterance.lang = 'ms-MY';
+      } else {
+        utterance.lang = 'en-US';
+      }
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function speakCurrentInstruction() {
+      if (!currentQuestion) {
+        speakText(i18n[currentLang].homeSubtitle);
+        return;
+      }
+      if (currentQuestion.type === 'connect') {
+        speakText(i18n[currentLang].voiceConnect);
+        return;
+      }
+      const map = {
+        'smallest_to_biggest': i18n[currentLang].voiceOrderSmallBig,
+        'biggest_to_smallest': i18n[currentLang].voiceOrderBigSmall,
+        'shortest_to_tallest': i18n[currentLang].voiceOrderShortTall,
+        'body_size': i18n[currentLang].voiceOrderByBody
+      };
+      speakText(map[currentQuestion.variation] || i18n[currentLang].voiceOrderSmallBig);
+    }
+
+    /* ======================================================================
+       25. PLAYER PROFILE & LOCAL STORAGE
+       localStorage Key: kinderKlub_susunHaiwan_playerProfile
+       Family Code must be completely blank by default!
+       ====================================================================== */
+    const PROFILE_KEY = 'kinderKlub_susunHaiwan_playerProfile';
+
+    function getPlayerProfile() {
+      try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && typeof data === 'object') return data;
+        }
+      } catch (e) {}
+      return {
+        playerName: '',
+        familyCode: '', // Blank by default!
+        gamesPlayed: 0,
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        bestScore: 0,
+        recentActivity: []
+      };
+    }
+
+    function savePlayerProfile(profile) {
+      try {
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      } catch (e) {}
+    }
+
+    function updateProfileStats(questionsCount, correctCount) {
+      const p = getPlayerProfile();
+      p.gamesPlayed += 1;
+      p.questionsAnswered += questionsCount;
+      p.correctAnswers += correctCount;
+      if (correctCount > p.bestScore) {
+        p.bestScore = correctCount;
+      }
+      const record = {
+        date: new Date().toLocaleDateString(),
+        score: correctCount,
+        total: questionsCount,
+        lang: currentLang
+      };
+      p.recentActivity.unshift(record);
+      if (p.recentActivity.length > 5) p.recentActivity.pop();
+      savePlayerProfile(p);
+    }
+
+    function renderProfileModal() {
+      const p = getPlayerProfile();
+      document.getElementById('input-player-name').value = p.playerName || '';
+      document.getElementById('input-family-code').value = p.familyCode || '';
+      document.getElementById('prof-games-played').textContent = p.gamesPlayed;
+      document.getElementById('prof-questions-answered').textContent = p.questionsAnswered;
+      document.getElementById('prof-correct-answers').textContent = p.correctAnswers;
+      document.getElementById('prof-best-score').textContent = p.bestScore;
+
+      const acc = p.questionsAnswered > 0 ? Math.round((p.correctAnswers / p.questionsAnswered) * 100) : 0;
+      document.getElementById('prof-accuracy').textContent = acc + '%';
+
+      const recentContainer = document.getElementById('prof-recent-activity');
+      recentContainer.innerHTML = '';
+      if (!p.recentActivity || p.recentActivity.length === 0) {
+        recentContainer.innerHTML = `<div class="text-amber-600 italic">${i18n[currentLang].noActivityYet}</div>`;
+      } else {
+        p.recentActivity.forEach(act => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between border-b border-amber-100 pb-1';
+          item.innerHTML = `<span>${act.date} (${act.lang.toUpperCase()})</span> <span class="font-bold text-amber-950">${act.score} / ${act.total}</span>`;
+          recentContainer.appendChild(item);
+        });
+      }
+    }
+
+    function saveProfileData() {
+      const p = getPlayerProfile();
+      p.playerName = document.getElementById('input-player-name').value.trim();
+      p.familyCode = document.getElementById('input-family-code').value.trim();
+      savePlayerProfile(p);
+    }
+
+    function openProfileScreen() {
+      renderProfileModal();
+      document.getElementById('screen-profile').classList.remove('hidden');
+    }
+
+    function closeProfileScreen() {
+      saveProfileData();
+      document.getElementById('screen-profile').classList.add('hidden');
+    }
+
+    /* ======================================================================
+       28. LANGUAGE SWITCHING
+       Every single visible label updates instantly.
+       ====================================================================== */
+    function setLanguage(lang) {
+      currentLang = lang;
+      
+      // Update toggle buttons styling
+      const btnBm = document.getElementById('lang-btn-bm');
+      const btnEn = document.getElementById('lang-btn-en');
+      if (lang === 'bm') {
+        btnBm.className = 'px-2.5 py-1 text-xs font-bold rounded-xl transition-colors bg-amber-500 text-white shadow-sm';
+        btnEn.className = 'px-2.5 py-1 text-xs font-bold rounded-xl transition-colors text-amber-900 hover:bg-amber-100';
+        document.documentElement.lang = 'ms';
+      } else {
+        btnEn.className = 'px-2.5 py-1 text-xs font-bold rounded-xl transition-colors bg-amber-500 text-white shadow-sm';
+        btnBm.className = 'px-2.5 py-1 text-xs font-bold rounded-xl transition-colors text-amber-900 hover:bg-amber-100';
+        document.documentElement.lang = 'en';
+      }
+
+      // Generic data-i18n replacements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang][key]) {
+          el.textContent = i18n[lang][key];
+        }
+      });
+
+      // Front / Home screen
+      document.getElementById('home-title').textContent = i18n[lang].homeTitle;
+      document.getElementById('home-subtitle').textContent = i18n[lang].homeSubtitle;
+      document.getElementById('btn-start-label').textContent = i18n[lang].btnStart;
+      document.getElementById('btn-how-label').textContent = i18n[lang].btnHow;
+      document.getElementById('btn-collection-label').textContent = i18n[lang].btnCollection;
+      document.getElementById('btn-profile-label').textContent = i18n[lang].btnProfile;
+
+      // Collection Screen
+      document.getElementById('collection-title').textContent = i18n[lang].collectionTitle;
+      document.getElementById('collection-subtitle').textContent = i18n[lang].collectionSubtitle;
+
+      // How to Play
+      document.getElementById('how-title').textContent = i18n[lang].howTitle;
+      document.getElementById('step1-title').textContent = i18n[lang].step1Title;
+      document.getElementById('step1-desc').textContent = i18n[lang].step1Desc;
+      document.getElementById('step2-title').textContent = i18n[lang].step2Title;
+      document.getElementById('step2-desc').textContent = i18n[lang].step2Desc;
+      document.getElementById('step3-title').textContent = i18n[lang].step3Title;
+      document.getElementById('step3-desc').textContent = i18n[lang].step3Desc;
+      document.getElementById('btn-how-start').textContent = i18n[lang].btnStart;
+
+      // Session Screen
+      document.getElementById('session-title').textContent = i18n[lang].sessionTitle;
+      document.getElementById('session-desc').textContent = i18n[lang].sessionDesc;
+
+      // Result Screen
+      document.getElementById('result-title').textContent = i18n[lang].resTitle;
+      document.getElementById('result-subtitle').textContent = i18n[lang].resSubtitle;
+
+      // If currently on collection screen, re-render with new language
+      if (currentScreen === 'collection') {
+        renderAnimalCollection(activeCollectionFilter);
+      }
+
+      // If in gameplay, refresh current question labels
+      if (currentScreen === 'game' && currentQuestion) {
+        renderCurrentQuestionHeader();
+        refreshDraggableCardLabels();
+      }
+    }
+
+    /* ======================================================================
+       SCREEN NAVIGATION LOGIC
+       ====================================================================== */
+    function switchScreen(screenName) {
+      currentScreen = screenName;
+      document.getElementById('screen-home').classList.add('hidden');
+      document.getElementById('screen-how').classList.add('hidden');
+      document.getElementById('screen-collection').classList.add('hidden');
+      document.getElementById('screen-session').classList.add('hidden');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+      clearConnectionLines();
+
+      if (screenName === 'home') {
+        document.getElementById('screen-home').classList.remove('hidden');
+      } else if (screenName === 'how') {
+        document.getElementById('screen-how').classList.remove('hidden');
+      } else if (screenName === 'collection') {
+        document.getElementById('screen-collection').classList.remove('hidden');
+      } else if (screenName === 'session') {
+        document.getElementById('screen-session').classList.remove('hidden');
+      } else if (screenName === 'game') {
+        document.getElementById('screen-game').classList.remove('hidden');
+      } else if (screenName === 'result') {
+        document.getElementById('screen-result').classList.remove('hidden');
+      }
+    }
+
+    function goToHome() {
+      switchScreen('home');
+    }
+
+    function goToHowToPlay() {
+      switchScreen('how');
+    }
+
+    /* ======================================================================
+       ANIMAL COLLECTION TAB IMPLEMENTATION
+       Shows all animals with filter chips, photos, badges, and speech.
+       ====================================================================== */
+    let activeCollectionFilter = 'all';
+
+    function goToCollection() {
+      switchScreen('collection');
+      renderAnimalCollection(activeCollectionFilter);
+    }
+
+    function filterCollection(category) {
+      activeCollectionFilter = category;
+      playSound('snap');
+
+      // Update button styles
+      const filterKeys = ['all', 'farm', 'wild', 'bird', 'sea', 'insect'];
+      filterKeys.forEach(k => {
+        const btn = document.getElementById(`filter-btn-${k}`);
+        if (!btn) return;
+        if (k === category) {
+          btn.className = 'px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all bg-amber-500 text-white border-2 border-amber-600 scale-105';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all bg-white text-amber-900 border-2 border-amber-300 hover:bg-amber-50';
+        }
+      });
+
+      renderAnimalCollection(category);
+    }
+
+    function renderAnimalCollection(filter) {
+      const container = document.getElementById('collection-grid');
+      container.innerHTML = '';
+
+      const filtered = animalImages.filter(animal => {
+        if (filter === 'all') return true;
+        return animal.group === filter;
+      });
+
+      // Update count indicators
+      document.getElementById('count-all').textContent = animalImages.length;
+      document.getElementById('count-farm').textContent = animalImages.filter(a => a.group === 'farm').length;
+      document.getElementById('count-wild').textContent = animalImages.filter(a => a.group === 'wild').length;
+      document.getElementById('count-bird').textContent = animalImages.filter(a => a.group === 'bird').length;
+      document.getElementById('count-sea').textContent = animalImages.filter(a => a.group === 'sea').length;
+      document.getElementById('count-insect').textContent = animalImages.filter(a => a.group === 'insect').length;
+
+      filtered.forEach(animal => {
+        const card = document.createElement('div');
+        card.className = 'btn-bubbly bg-white rounded-2xl p-2 sm:p-2.5 shadow-md border-2 border-amber-300 flex flex-col items-center hover:shadow-xl transition-all cursor-pointer';
+
+        const name = currentLang === 'bm' ? animal.nameBM : animal.nameEN;
+        const categoryLabel = animal.category === 'small' 
+          ? i18n[currentLang].sizeSmall 
+          : (animal.category === 'medium' ? i18n[currentLang].sizeMedium : i18n[currentLang].sizeLarge);
+
+        const badgeColor = animal.category === 'small'
+          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+          : (animal.category === 'medium' ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-sky-100 text-sky-800 border-sky-300');
+
+        card.innerHTML = `
+          <div class="w-full aspect-square rounded-xl bg-amber-50 overflow-hidden border border-amber-200 flex items-center justify-center p-1 relative group">
+            <img src="${animal.imageUrl}" alt="${name}" class="w-full h-full object-cover rounded-lg" onerror="renderFallbackImage(this, '${animal.id}')">
+            <!-- Audio hint icon -->
+            <div class="absolute bottom-1 right-1 bg-amber-400/90 text-amber-950 p-1 rounded-lg shadow opacity-80 group-hover:opacity-100">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </div>
+          </div>
+          <span class="font-black text-xs sm:text-sm text-amber-950 mt-1.5 text-center truncate w-full">
+            ${name}
+          </span>
+          <span class="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border mt-1 ${badgeColor}">
+            ${categoryLabel}
+          </span>
+        `;
+
+        card.addEventListener('click', () => {
+          playSound('snap');
+          const speechText = currentLang === 'bm' 
+            ? `${animal.nameBM}. Saiz ${categoryLabel}.` 
+            : `${animal.nameEN}. Size ${categoryLabel}.`;
+          speakText(speechText);
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    function goToSessionSelection() {
+      switchScreen('session');
+    }
+
+    /* ======================================================================
+       QUESTION GENERATION & COMBINATION GENERATOR
+       Clear, unambiguous size differences for 3–6 year olds.
+       NEVER pair animals of confusingly similar scale (e.g., dolphin vs whale).
+       ====================================================================== */
+    const curatedCombinations = [
+      // 3 Animals (Clear visual contrast: Tiny -> Medium -> Huge)
+      ["ant", "cat", "elephant"],
+      ["butterfly", "dog", "giraffe"],
+      ["bee", "goat", "cow"],
+      ["snail", "duck", "horse"],
+      ["ladybird", "rabbit", "lion"],
+      ["fish", "turtle", "whale"],
+      ["seahorse", "penguin", "shark"],
+      ["crab", "seal", "hippopotamus"],
+      ["parrot", "sheep", "camel"],
+      ["woodpecker", "deer", "bear"],
+
+      // 4 Animals (Tiny -> Small -> Large -> Huge)
+      ["ant", "rabbit", "cow", "elephant"],
+      ["butterfly", "duck", "lion", "giraffe"],
+      ["bee", "cat", "horse", "elephant"],
+      ["snail", "chicken", "zebra", "whale"],
+      ["ladybird", "dog", "bear", "elephant"],
+      ["seahorse", "turtle", "donkey", "whale"],
+      ["pigeon", "monkey", "horse", "giraffe"],
+      ["crab", "seal", "camel", "whale"],
+
+      // 5 Animals (Insect -> Small Bird/Pet -> Farm -> Large Wild -> Megafauna)
+      ["ant", "rabbit", "goat", "horse", "elephant"],
+      ["bee", "chicken", "dog", "cow", "giraffe"],
+      ["butterfly", "cat", "deer", "camel", "elephant"],
+      ["snail", "duck", "sheep", "bear", "whale"],
+      ["ladybird", "rabbit", "donkey", "hippopotamus", "elephant"]
+    ];
+
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function generateSessionQuestions(count) {
+      const questions = [];
+      const variations = ['smallest_to_biggest', 'biggest_to_smallest', 'shortest_to_tallest', 'body_size'];
+      
+      // Ensure at least one connect activity per session
+      const connectIndex = Math.floor(Math.random() * (count - 1)) + 1;
+
+      for (let i = 0; i < count; i++) {
+        if (i === connectIndex) {
+          // Mandatory Drag-to-Connect Matching Activity
+          // Pick 1 clear small, 1 clear medium, 1 clear large animal without ambiguity
+          const smalls = animalImages.filter(a => a.category === 'small' && a.sizeRating <= 3.8);
+          const mediums = animalImages.filter(a => a.category === 'medium' && a.id !== 'ostrich');
+          const larges = animalImages.filter(a => a.category === 'large');
+
+          const pickedSmall = smalls[Math.floor(Math.random() * smalls.length)];
+          const pickedMedium = mediums[Math.floor(Math.random() * mediums.length)];
+          const pickedLarge = larges[Math.floor(Math.random() * larges.length)];
+
+          questions.push({
+            type: 'connect',
+            animals: shuffleArray([pickedSmall, pickedMedium, pickedLarge])
+          });
+          continue;
+        }
+
+        // Arrangement Question
+        const comboIds = curatedCombinations[Math.floor(Math.random() * curatedCombinations.length)];
+        const comboAnimals = comboIds.map(id => animalImages.find(a => a.id === id)).filter(Boolean);
+        
+        let variation = variations[Math.floor(Math.random() * variations.length)];
+        // Giraffe/Ostrich/Flamingo are ideal for height comparison
+        const hasTall = comboAnimals.some(a => ['giraffe', 'ostrich', 'flamingo', 'camel'].includes(a.id));
+        if (variation === 'shortest_to_tallest' && !hasTall) {
+          variation = 'smallest_to_biggest';
+        }
+
+        // Calculate correct order
+        let sorted = [...comboAnimals];
+        if (variation === 'smallest_to_biggest' || variation === 'body_size') {
+          sorted.sort((a, b) => a.sizeRating - b.sizeRating);
+        } else if (variation === 'biggest_to_smallest') {
+          sorted.sort((a, b) => b.sizeRating - a.sizeRating);
+        } else if (variation === 'shortest_to_tallest') {
+          sorted.sort((a, b) => a.heightRating - b.heightRating);
+        }
+
+        // 17. Randomized starting order: MUST NEVER initially appear already sorted
+        let randomized = shuffleArray(comboAnimals);
+        let attempts = 0;
+        while (attempts < 10 && isArrayEqual(randomized, sorted)) {
+          randomized = shuffleArray(comboAnimals);
+          attempts++;
+        }
+
+        questions.push({
+          type: 'arrange',
+          variation: variation,
+          animals: randomized,
+          correctOrder: sorted
+        });
+      }
+
+      return questions;
+    }
+
+    function isArrayEqual(a, b) {
+      if (a.length !== b.length) return false;
+      return a.every((val, index) => val.id === b[index].id);
+    }
+
+    function startSession(questionCount) {
+      sessionTotalQuestions = questionCount;
+      currentQuestionIndex = 0;
+      currentScore = 0;
+      sessionQuestions = generateSessionQuestions(sessionTotalQuestions);
+      switchScreen('game');
+      loadQuestion(currentQuestionIndex);
+    }
+
+    /* ======================================================================
+       GAMEPLAY QUESTION RENDERING
+       ====================================================================== */
+    function loadQuestion(index) {
+      clearConnectionLines();
+      currentQuestionIndex = index;
+      currentQuestion = sessionQuestions[index];
+      slotAssignments = {};
+
+      // Update progress & score UI
+      const badge = document.getElementById('game-progress-badge');
+      const text = document.getElementById('game-progress-text');
+      badge.textContent = `${index + 1} / ${sessionTotalQuestions}`;
+      text.textContent = i18n[currentLang].questionProgress
+        .replace('{current}', index + 1)
+        .replace('{total}', sessionTotalQuestions);
+      document.getElementById('game-current-score').textContent = currentScore;
+
+      hideFeedback();
+
+      if (currentQuestion.type === 'connect') {
+        document.getElementById('mode-arrange').classList.add('hidden');
+        document.getElementById('mode-connect').classList.remove('hidden');
+        document.getElementById('btn-check-arrangement').classList.add('hidden');
+        setupConnectActivity();
+      } else {
+        document.getElementById('mode-arrange').classList.remove('hidden');
+        document.getElementById('mode-connect').classList.add('hidden');
+        document.getElementById('btn-check-arrangement').classList.remove('hidden');
+        setupArrangeActivity();
+      }
+
+      renderCurrentQuestionHeader();
+      speakCurrentInstruction();
+    }
+
+    function setupConnectActivity() {
+      connectedPairs = {};
+      selectedConnectAnimal = null;
+      isDrawingConnectLine = false;
+      clearConnectionLines();
+
+      const leftCol = document.getElementById('connect-left-column');
+      const rightCol = document.getElementById('connect-right-column');
+      if (!leftCol || !rightCol) return;
+
+      leftCol.innerHTML = '';
+      rightCol.innerHTML = '';
+
+      // Size categories with matching dimensions, styling, and visual indicators
+      const categories = [
+        { 
+          id: 'small', 
+          labelBM: 'Kecil', 
+          labelEN: 'Small', 
+          descBM: 'Saiz Kecil',
+          descEN: 'Small Size',
+          iconBg: 'bg-emerald-100 border-emerald-300',
+          dot: 'w-3.5 h-3.5 bg-emerald-500 rounded-full',
+          svg: `<svg class="w-7 h-7 sm:w-8 sm:h-8 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="5"/>
+                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="2,2"/>
+                </svg>`
+        },
+        { 
+          id: 'medium', 
+          labelBM: 'Sederhana', 
+          labelEN: 'Medium', 
+          descBM: 'Saiz Sederhana',
+          descEN: 'Medium Size',
+          iconBg: 'bg-amber-100 border-amber-300',
+          dot: 'w-5 h-5 bg-amber-500 rounded-full',
+          svg: `<svg class="w-8 h-8 sm:w-9 sm:h-9 text-amber-600" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="7"/>
+                  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3,3"/>
+                </svg>`
+        },
+        { 
+          id: 'large', 
+          labelBM: 'Besar', 
+          labelEN: 'Large', 
+          descBM: 'Saiz Besar',
+          descEN: 'Large Size',
+          iconBg: 'bg-sky-100 border-sky-300',
+          dot: 'w-7 h-7 bg-sky-500 rounded-full',
+          svg: `<svg class="w-9 h-9 sm:w-10 sm:h-10 text-sky-600" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="9.5"/>
+                  <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                </svg>`
+        }
+      ];
+      const shuffledCategories = shuffleArray(categories);
+
+      // Render animals on the left (Exact matched height and width)
+      currentQuestion.animals.forEach(animal => {
+        const name = currentLang === 'bm' ? animal.nameBM : animal.nameEN;
+        const row = document.createElement('div');
+        row.className = 'connect-node-left btn-bubbly w-full max-w-[230px] sm:max-w-[260px] h-[72px] sm:h-[84px] bg-white rounded-2xl p-2 sm:p-2.5 shadow-md border-3 border-amber-300 flex items-center justify-between gap-2 cursor-pointer transition-all';
+        row.setAttribute('data-animal-id', animal.id);
+        row.setAttribute('data-category', animal.category);
+
+        row.innerHTML = `
+          <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 pointer-events-none flex-1">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-amber-50 border-2 border-amber-200 shrink-0 shadow-sm">
+              <img src="${animal.imageUrl}" alt="${name}" class="w-full h-full object-cover rounded-lg" onerror="renderFallbackImage(this, '${animal.id}')">
+            </div>
+            <div class="flex flex-col min-w-0 text-left">
+              <span class="font-black text-xs sm:text-sm text-amber-950 truncate">${name}</span>
+              <span class="text-[10px] text-amber-600 font-bold hidden xs:inline">${currentLang === 'bm' ? 'Padankan' : 'Match'}</span>
+            </div>
+          </div>
+          <div class="connect-port w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-amber-400 border-2 border-white shadow flex items-center justify-center shrink-0">
+            <div class="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-amber-900"></div>
+          </div>
+        `;
+
+        setupConnectInteraction(row, 'left', animal.id);
+        leftCol.appendChild(row);
+      });
+
+      // Render size categories on the right (Exact matching box dimensions)
+      shuffledCategories.forEach(cat => {
+        const label = currentLang === 'bm' ? cat.labelBM : cat.labelEN;
+        const desc = currentLang === 'bm' ? cat.descBM : cat.descEN;
+        const row = document.createElement('div');
+        row.className = `connect-node-right btn-bubbly w-full max-w-[230px] sm:max-w-[260px] h-[72px] sm:h-[84px] bg-white rounded-2xl p-2 sm:p-2.5 shadow-md border-3 border-amber-300 flex items-center justify-between gap-2 cursor-pointer transition-all`;
+        row.setAttribute('data-target-cat', cat.id);
+
+        row.innerHTML = `
+          <div class="connect-port w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-amber-400 border-2 border-white shadow flex items-center justify-center shrink-0">
+            <div class="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-amber-900"></div>
+          </div>
+          <div class="flex items-center justify-end gap-2 sm:gap-2.5 pointer-events-none flex-1 min-w-0">
+            <div class="flex flex-col items-end min-w-0 text-right">
+              <span class="font-black text-xs sm:text-sm text-amber-950">${label}</span>
+              <span class="text-[10px] font-bold text-amber-600 hidden xs:inline">${desc}</span>
+            </div>
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden ${cat.iconBg} border-2 flex items-center justify-center shrink-0 shadow-sm">
+              ${cat.svg}
+            </div>
+          </div>
+        `;
+
+        setupConnectInteraction(row, 'right', cat.id);
+        rightCol.appendChild(row);
+      });
+    }
+
+    function setupConnectInteraction(element, side, id) {
+      if (side === 'left') {
+        // Pointer down on animal: supports both drag and tap-to-select
+        element.addEventListener('pointerdown', (e) => {
+          if (connectedPairs[id]) return; // Already paired
+          selectedConnectAnimal = id;
+          isDrawingConnectLine = true;
+          playSound('snap');
+
+          // Highlight selected animal
+          document.querySelectorAll('.connect-node-left').forEach(n => n.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-100'));
+          element.classList.add('ring-4', 'ring-amber-400', 'bg-amber-100');
+
+          try {
+            element.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        });
+
+        element.addEventListener('pointermove', (e) => {
+          if (!isDrawingConnectLine || selectedConnectAnimal !== id) return;
+          e.preventDefault();
+          drawTemporaryLine(element, e.clientX, e.clientY);
+        });
+
+        element.addEventListener('pointerup', (e) => {
+          if (!isDrawingConnectLine) return;
+          isDrawingConnectLine = false;
+          removeTemporaryLine();
+
+          try {
+            element.releasePointerCapture(e.pointerId);
+          } catch (_) {}
+
+          // Check if released over a target node on the right
+          const targetElem = document.elementFromPoint(e.clientX, e.clientY);
+          if (targetElem) {
+            const rightNode = targetElem.closest('.connect-node-right');
+            if (rightNode) {
+              const targetCat = rightNode.getAttribute('data-target-cat');
+              evaluateConnection(id, targetCat);
+            }
+          }
+        });
+      } else {
+        // Click / pointerdown on size target on the right (Tap-to-match support)
+        element.addEventListener('pointerdown', () => {
+          if (!selectedConnectAnimal) return;
+          evaluateConnection(selectedConnectAnimal, id);
+        });
+      }
+    }
+
+    function renderCurrentQuestionHeader() {
+      if (!currentQuestion) return;
+      const titleEl = document.getElementById('game-instruction-title');
+      const subEl = document.getElementById('game-instruction-sub');
+      const checkBtn = document.getElementById('btn-check-arrangement');
+      checkBtn.textContent = i18n[currentLang].btnCheck;
+
+      if (currentQuestion.type === 'connect') {
+        titleEl.textContent = i18n[currentLang].connectTitle;
+        subEl.textContent = i18n[currentLang].connectSubtitle;
+        return;
+      }
+
+      const varLabels = {
+        'smallest_to_biggest': {
+          title: currentLang === 'bm' ? "Susun daripada paling kecil kepada paling besar." : "Arrange from smallest to biggest.",
+          sub: currentLang === 'bm' ? "Tarik setiap haiwan ke dalam kotak yang betul mengikut urutan." : "Drag each animal into the correct slot in order."
+        },
+        'biggest_to_smallest': {
+          title: currentLang === 'bm' ? "Susun daripada paling besar kepada paling kecil." : "Arrange from biggest to smallest.",
+          sub: currentLang === 'bm' ? "Mulakan dengan haiwan yang paling besar." : "Start with the biggest animal."
+        },
+        'shortest_to_tallest': {
+          title: currentLang === 'bm' ? "Susun daripada paling rendah kepada paling tinggi." : "Arrange from shortest to tallest.",
+          sub: currentLang === 'bm' ? "Bandingkan ketinggian setiap haiwan." : "Compare the height of each animal."
+        },
+        'body_size': {
+          title: currentLang === 'bm' ? "Susun haiwan mengikut saiz badannya." : "Arrange animals by their body size.",
+          sub: currentLang === 'bm' ? "Susun daripada kecil kepada besar." : "Arrange from small to large."
+        }
+      };
+
+      const info = varLabels[currentQuestion.variation] || varLabels['smallest_to_biggest'];
+      titleEl.textContent = info.title;
+      subEl.textContent = info.sub;
+
+      // Update slot direction guides
+      const leftLabel = document.getElementById('slot-direction-label-left');
+      const rightLabel = document.getElementById('slot-direction-label-right');
+      if (currentQuestion.variation === 'biggest_to_smallest') {
+        leftLabel.textContent = currentLang === 'bm' ? "1: Paling Besar" : "1: Biggest";
+        rightLabel.textContent = currentLang === 'bm' ? "Paling Kecil" : "Smallest";
+      } else if (currentQuestion.variation === 'shortest_to_tallest') {
+        leftLabel.textContent = i18n[currentLang].slotShortLabel;
+        rightLabel.textContent = i18n[currentLang].slotTallLabel;
+      } else {
+        leftLabel.textContent = i18n[currentLang].slotSmallLabel;
+        rightLabel.textContent = i18n[currentLang].slotBigLabel;
+      }
+    }
+
+    function setupArrangeActivity() {
+      const slotsContainer = document.getElementById('arrangement-slots-container');
+      const cardsContainer = document.getElementById('arrangement-cards-container');
+      slotsContainer.innerHTML = '';
+      cardsContainer.innerHTML = '';
+
+      const count = currentQuestion.animals.length;
+      slotsContainer.className = `grid grid-cols-${count > 3 ? (count > 4 ? '5' : '4') : '3'} gap-2 sm:gap-3.5 w-full justify-center max-w-2xl mx-auto`;
+
+      // Render Drop Destination Slots
+      for (let i = 0; i < count; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'drag-slot relative bg-amber-50/80 rounded-2xl border-3 border-dashed border-amber-400/80 flex flex-col items-center justify-center p-1 sm:p-2 min-h-[95px] sm:min-h-[120px] shadow-sm';
+        slot.setAttribute('data-slot-index', i);
+
+        // Slot number watermark
+        const numBadge = document.createElement('div');
+        numBadge.className = 'absolute top-1 left-1.5 bg-amber-300/80 text-amber-950 font-black text-xs sm:text-sm w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center pointer-events-none shadow-sm';
+        numBadge.textContent = (i + 1);
+        slot.appendChild(numBadge);
+
+        // Drop target placeholder icon
+        const placeholder = document.createElement('div');
+        placeholder.className = 'slot-placeholder flex flex-col items-center text-amber-400 pointer-events-none';
+        placeholder.innerHTML = `
+          <svg class="w-7 h-7 sm:w-8 sm:h-8 opacity-60" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+          <span class="text-[10px] font-bold mt-0.5 opacity-80">${currentLang === 'bm' ? 'Letak Sini' : 'Place Here'}</span>
+        `;
+        slot.appendChild(placeholder);
+
+        // Mouse & Touch Drop Listeners on slot
+        slot.addEventListener('dragover', handleSlotDragOver);
+        slot.addEventListener('dragleave', handleSlotDragLeave);
+        slot.addEventListener('drop', handleSlotDrop);
+
+        // Click to place if card is tapped
+        slot.addEventListener('click', () => handleSlotClick(i));
+
+        slotsContainer.appendChild(slot);
+      }
+
+      // Render Draggable Animal Cards
+      currentQuestion.animals.forEach(animal => {
+        const card = createDraggableAnimalCard(animal);
+        cardsContainer.appendChild(card);
+      });
+    }
+
+    function createDraggableAnimalCard(animal) {
+      const card = document.createElement('div');
+      card.className = 'drag-card bg-white rounded-2xl p-1.5 sm:p-2 shadow-md border-3 border-amber-300 flex flex-col items-center w-20 sm:w-28 cursor-grab active:cursor-grabbing hover:shadow-xl transition-all';
+      card.setAttribute('draggable', 'true');
+      card.setAttribute('data-animal-id', animal.id);
+
+      const name = currentLang === 'bm' ? animal.nameBM : animal.nameEN;
+
+      card.innerHTML = `
+        <div class="w-16 h-16 sm:w-22 sm:h-22 rounded-xl overflow-hidden bg-amber-100 flex items-center justify-center p-0.5 pointer-events-none border border-amber-200">
+          <img src="${animal.imageUrl}" alt="${name}" class="w-full h-full object-cover rounded-lg" onerror="renderFallbackImage(this, '${animal.id}')">
+        </div>
+        <span class="animal-name text-[11px] sm:text-xs font-black text-amber-950 mt-1 pointer-events-none text-center truncate w-full">
+          ${name}
+        </span>
+      `;
+
+      // HTML5 Drag Events (Desktop)
+      card.addEventListener('dragstart', handleCardDragStart);
+      card.addEventListener('dragend', handleCardDragEnd);
+
+      // Mobile Touch Drag Events (Touchscreen Support)
+      setupTouchDrag(card);
+
+      return card;
+    }
+
+    function refreshDraggableCardLabels() {
+      document.querySelectorAll('.drag-card').forEach(card => {
+        const id = card.getAttribute('data-animal-id');
+        const animal = animalImages.find(a => a.id === id);
+        if (animal) {
+          const nameSpan = card.querySelector('.animal-name');
+          if (nameSpan) {
+            nameSpan.textContent = currentLang === 'bm' ? animal.nameBM : animal.nameEN;
+          }
+        }
+      });
+    }
+
+    /* Fallback image generator using preschool inline SVGs if Unsplash is unreachable */
+    function renderFallbackImage(imgElement, animalId) {
+      const animal = animalImages.find(a => a.id === animalId);
+      const name = animal ? (currentLang === 'bm' ? animal.nameBM : animal.nameEN) : 'Haiwan';
+      imgElement.onerror = null;
+      imgElement.src = `https://placehold.co/150x150/FDE68A/78350F?text=${encodeURIComponent(name)}`;
+    }
+
+    /* ======================================================================
+       18. DESKTOP & MOBILE TOUCH DRAG-AND-DROP MECHANICS
+       Smooth, preschool forgiving interaction.
+       ====================================================================== */
+    let draggedElement = null;
+    let draggedAnimalId = null;
+
+    // Desktop Mouse Drag
+    function handleCardDragStart(e) {
+      draggedElement = this;
+      draggedAnimalId = this.getAttribute('data-animal-id');
+      this.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', draggedAnimalId);
+      playSound('snap');
+    }
+
+    function handleCardDragEnd() {
+      this.classList.remove('dragging');
+      draggedElement = null;
+      draggedAnimalId = null;
+      document.querySelectorAll('.drag-slot').forEach(s => s.classList.remove('hovered'));
+    }
+
+    function handleSlotDragOver(e) {
+      e.preventDefault();
+      this.classList.add('hovered');
+    }
+
+    function handleSlotDragLeave() {
+      this.classList.remove('hovered');
+    }
+
+    function handleSlotDrop(e) {
+      e.preventDefault();
+      this.classList.remove('hovered');
+      const animalId = e.dataTransfer.getData('text/plain') || draggedAnimalId;
+      if (!animalId) return;
+
+      const slotIndex = parseInt(this.getAttribute('data-slot-index'), 10);
+      placeAnimalInSlot(animalId, slotIndex);
+    }
+
+    // Touch Drag Handling for Mobile Devices
+    function setupTouchDrag(el) {
+      let touchClone = null;
+      let startX = 0;
+      let startY = 0;
+
+      el.addEventListener('touchstart', function(e) {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        draggedElement = el;
+        draggedAnimalId = el.getAttribute('data-animal-id');
+
+        // Create visible floating touch avatar
+        touchClone = el.cloneNode(true);
+        touchClone.style.position = 'fixed';
+        touchClone.style.width = el.offsetWidth + 'px';
+        touchClone.style.pointerEvents = 'none';
+        touchClone.style.zIndex = '9999';
+        touchClone.style.opacity = '0.9';
+        touchClone.style.transform = 'scale(1.1) rotate(4deg)';
+        touchClone.style.left = (touch.clientX - el.offsetWidth / 2) + 'px';
+        touchClone.style.top = (touch.clientY - el.offsetHeight / 2) + 'px';
+        document.body.appendChild(touchClone);
+
+        el.classList.add('dragging');
+        playSound('snap');
+      }, { passive: false });
+
+      el.addEventListener('touchmove', function(e) {
+        if (!touchClone) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        touchClone.style.left = (touch.clientX - el.offsetWidth / 2) + 'px';
+        touchClone.style.top = (touch.clientY - el.offsetHeight / 2) + 'px';
+
+        // Check hover over slots
+        const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        document.querySelectorAll('.drag-slot').forEach(s => s.classList.remove('hovered'));
+        if (elemBelow) {
+          const slot = elemBelow.closest('.drag-slot');
+          if (slot) slot.classList.add('hovered');
+        }
+      }, { passive: false });
+
+      el.addEventListener('touchend', function(e) {
+        if (!touchClone) return;
+        const touch = e.changedTouches[0];
+        const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+
+        touchClone.remove();
+        touchClone = null;
+        el.classList.remove('dragging');
+        document.querySelectorAll('.drag-slot').forEach(s => s.classList.remove('hovered'));
+
+        if (elemBelow) {
+          const slot = elemBelow.closest('.drag-slot');
+          if (slot) {
+            const slotIndex = parseInt(slot.getAttribute('data-slot-index'), 10);
+            placeAnimalInSlot(draggedAnimalId, slotIndex);
+          }
+        }
+        draggedElement = null;
+        draggedAnimalId = null;
+      });
+    }
+
+    // Tap to slot placement logic (preschool fallback convenience)
+    let selectedForTap = null;
+    function handleCardTapSelection(animalId) {
+      selectedForTap = animalId;
+      document.querySelectorAll('.drag-card').forEach(c => {
+        if (c.getAttribute('data-animal-id') === animalId) {
+          c.classList.add('ring-4', 'ring-yellow-400');
+        } else {
+          c.classList.remove('ring-4', 'ring-yellow-400');
+        }
+      });
+    }
+
+    function handleSlotClick(slotIndex) {
+      if (selectedForTap) {
+        placeAnimalInSlot(selectedForTap, slotIndex);
+        selectedForTap = null;
+        document.querySelectorAll('.drag-card').forEach(c => c.classList.remove('ring-4', 'ring-yellow-400'));
+      }
+    }
+
+    // Placement & Swapping logic
+    function placeAnimalInSlot(animalId, slotIndex) {
+      // If this animal was already in another slot, vacate that slot
+      for (const [sIdx, aId] of Object.entries(slotAssignments)) {
+        if (aId === animalId && parseInt(sIdx, 10) !== slotIndex) {
+          delete slotAssignments[sIdx];
+          vacateSlotVisual(parseInt(sIdx, 10));
+        }
+      }
+
+      // If this slot was occupied by another animal, send that animal back to pool
+      if (slotAssignments[slotIndex] && slotAssignments[slotIndex] !== animalId) {
+        const prevAnimalId = slotAssignments[slotIndex];
+        returnCardToPool(prevAnimalId);
+      }
+
+      slotAssignments[slotIndex] = animalId;
+      renderSlotOccupied(slotIndex, animalId);
+      playSound('snap');
+
+      // If all slots are filled, automatically check answer!
+      const requiredCount = currentQuestion.animals.length;
+      if (Object.keys(slotAssignments).length === requiredCount) {
+        setTimeout(verifyArrangementAnswer, 400);
+      }
+    }
+
+    function renderSlotOccupied(slotIndex, animalId) {
+      const slot = document.querySelector(`.drag-slot[data-slot-index="${slotIndex}"]`);
+      if (!slot) return;
+
+      const placeholder = slot.querySelector('.slot-placeholder');
+      if (placeholder) placeholder.style.display = 'none';
+
+      // Remove existing card inside slot if any
+      const existing = slot.querySelector('.drag-card');
+      if (existing) existing.remove();
+
+      // Move or create animal card into slot
+      const animal = animalImages.find(a => a.id === animalId);
+      if (!animal) return;
+
+      // Hide card from pool
+      const poolCard = document.querySelector(`#arrangement-cards-container .drag-card[data-animal-id="${animalId}"]`);
+      if (poolCard) poolCard.style.display = 'none';
+
+      const card = createDraggableAnimalCard(animal);
+      card.classList.add('animate-pop');
+      // Clicking on card in slot returns it to pool
+      card.title = currentLang === 'bm' ? "Tekan untuk keluarkan" : "Tap to return";
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        returnCardToPool(animalId);
+        delete slotAssignments[slotIndex];
+        vacateSlotVisual(slotIndex);
+      });
+
+      slot.appendChild(card);
+      slot.classList.add('occupied');
+    }
+
+    function vacateSlotVisual(slotIndex) {
+      const slot = document.querySelector(`.drag-slot[data-slot-index="${slotIndex}"]`);
+      if (!slot) return;
+      slot.classList.remove('occupied');
+      const card = slot.querySelector('.drag-card');
+      if (card) card.remove();
+      const placeholder = slot.querySelector('.slot-placeholder');
+      if (placeholder) placeholder.style.display = 'flex';
+    }
+
+    function returnCardToPool(animalId) {
+      const poolCard = document.querySelector(`#arrangement-cards-container .drag-card[data-animal-id="${animalId}"]`);
+      if (poolCard) {
+        poolCard.style.display = 'flex';
+        poolCard.classList.add('animate-pop');
+      }
+    }
+
+    /* ======================================================================
+       19. CORRECT COMPLETION & 20. INCORRECT ARRANGEMENT
+       When incorrect: do NOT ask to retry. Show gentle feedback and immediately
+       advance to the next question without deducting score.
+       ====================================================================== */
+    function verifyArrangementAnswer() {
+      if (!currentQuestion || currentQuestion.type !== 'arrange') return;
+
+      const totalSlots = currentQuestion.animals.length;
+      const assignedCount = Object.keys(slotAssignments).length;
+
+      if (assignedCount < totalSlots) {
+        showFeedback('warning', i18n[currentLang].feedbackIncomplete);
+        playSound('retry');
+        return;
+      }
+
+      // Build child's arrangement array
+      const childOrder = [];
+      for (let i = 0; i < totalSlots; i++) {
+        childOrder.push(slotAssignments[i]);
+      }
+
+      // Check against correct order
+      const correctOrderIds = currentQuestion.correctOrder.map(a => a.id);
+      const isCorrect = childOrder.every((id, idx) => id === correctOrderIds[idx]);
+
+      if (isCorrect) {
+        // CELEBRATION!
+        currentScore += 1;
+        document.getElementById('game-current-score').textContent = currentScore;
+        playSound('correct');
+        showFeedback('success', i18n[currentLang].feedbackCorrect);
+
+        // Highlight slots in glowing green
+        document.querySelectorAll('.drag-slot').forEach(s => {
+          s.classList.add('ring-4', 'ring-emerald-400', 'bg-emerald-100/90');
+        });
+
+        // Automatically progress to next question after brief celebration
+        setTimeout(() => {
+          handleNextQuestion();
+        }, 1600);
+      } else {
+        // JAWAPAN SALAH: Jangan suruh cuba lagi, terus bergerak ke soalan seterusnya!
+        playSound('retry');
+        showFeedback('retry', i18n[currentLang].feedbackAlmost);
+        speakText(i18n[currentLang].feedbackAlmost);
+
+        // Soft indicator on slots
+        document.querySelectorAll('.drag-slot').forEach(s => {
+          s.classList.add('ring-4', 'ring-rose-400', 'bg-rose-50');
+        });
+
+        // Terus ke soalan seterusnya selepas paparan ringkas
+        setTimeout(() => {
+          handleNextQuestion();
+        }, 1600);
+      }
+    }
+
+    function handleNextQuestion() {
+      if (currentQuestionIndex + 1 < sessionTotalQuestions) {
+        loadQuestion(currentQuestionIndex + 1);
+      } else {
+        showResultScreen();
+      }
+    }
+
+    function showFeedback(type, message) {
+      const banner = document.getElementById('game-feedback-banner');
+      const icon = document.getElementById('feedback-icon');
+      const text = document.getElementById('feedback-text');
+
+      text.textContent = message;
+      banner.className = 'transition-all duration-300 mt-3 px-5 py-2.5 rounded-2xl text-center font-black text-sm sm:text-base shadow-xl flex items-center justify-center gap-2 max-w-md animate-pop';
+
+      if (type === 'success') {
+        banner.classList.add('bg-emerald-500', 'text-white');
+        icon.innerHTML = `<svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>`;
+      } else if (type === 'retry') {
+        banner.classList.add('bg-amber-500', 'text-white');
+        icon.innerHTML = `<svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+      } else {
+        banner.classList.add('bg-yellow-400', 'text-amber-950');
+        icon.innerHTML = `<svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
+      }
+
+      banner.style.opacity = '1';
+    }
+
+    function hideFeedback() {
+      const banner = document.getElementById('game-feedback-banner');
+      banner.style.opacity = '0';
+    }
+
+    /* ======================================================================
+       EVALUATE CONNECTION
+       ====================================================================== */
+    function evaluateConnection(animalId, targetCat) {
+      const animal = animalImages.find(a => a.id === animalId);
+      if (!animal) return;
+
+      const leftNode = document.querySelector(`.connect-node-left[data-animal-id="${animalId}"]`);
+      const rightNode = document.querySelector(`.connect-node-right[data-target-cat="${targetCat}"]`);
+
+      if (animal.category === targetCat) {
+        // Correct match!
+        connectedPairs[animalId] = targetCat;
+        playSound('correct');
+
+        if (leftNode) {
+          leftNode.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-100');
+          leftNode.classList.add('ring-3', 'ring-emerald-500', 'bg-emerald-50');
+          leftNode.style.pointerEvents = 'none';
+        }
+        if (rightNode) {
+          rightNode.classList.add('ring-3', 'ring-emerald-500', 'bg-emerald-50');
+        }
+
+        drawPermanentLine(leftNode, rightNode, animalId);
+        selectedConnectAnimal = null;
+
+        // If all connected, celebrate and advance!
+        if (Object.keys(connectedPairs).length === currentQuestion.animals.length) {
+          currentScore += 1;
+          document.getElementById('game-current-score').textContent = currentScore;
+          showFeedback('success', i18n[currentLang].feedbackCorrect);
+          setTimeout(handleNextQuestion, 1600);
+        }
+      } else {
+        // JAWAPAN SALAH: Jangan suruh cuba lagi, terus ke soalan seterusnya!
+        playSound('retry');
+        showFeedback('retry', i18n[currentLang].feedbackAlmost);
+        speakText(i18n[currentLang].feedbackAlmost);
+
+        if (leftNode) {
+          leftNode.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-100');
+          leftNode.classList.add('ring-4', 'ring-rose-400', 'bg-rose-50');
+        }
+        if (rightNode) {
+          rightNode.classList.add('ring-4', 'ring-rose-400', 'bg-rose-50');
+        }
+
+        selectedConnectAnimal = null;
+        setTimeout(handleNextQuestion, 1600);
+      }
+    }
+
+    // SVG Connection Lines implementation
+    function clearConnectionLines() {
+      const svg = document.getElementById('connection-svg');
+      if (svg) svg.innerHTML = '';
+    }
+
+    function drawTemporaryLine(fromElement, targetX, targetY) {
+      const svg = document.getElementById('connection-svg');
+      if (!svg) return;
+      let tempPath = document.getElementById('temp-connect-line');
+      if (!tempPath) {
+        tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        tempPath.setAttribute('id', 'temp-connect-line');
+        tempPath.setAttribute('stroke', '#F59E0B');
+        tempPath.setAttribute('stroke-width', '4');
+        tempPath.setAttribute('stroke-dasharray', '6,6');
+        tempPath.setAttribute('fill', 'none');
+        svg.appendChild(tempPath);
+      }
+
+      const svgRect = svg.getBoundingClientRect();
+      const port = fromElement.querySelector('.connect-port') || fromElement;
+      const rect = port.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2 - svgRect.left;
+      const startY = rect.top + rect.height / 2 - svgRect.top;
+      const endX = targetX - svgRect.left;
+      const endY = targetY - svgRect.top;
+
+      tempPath.setAttribute('d', `M ${startX} ${startY} C ${(startX + endX)/2} ${startY}, ${(startX + endX)/2} ${endY}, ${endX} ${endY}`);
+    }
+
+    function removeTemporaryLine() {
+      const tempPath = document.getElementById('temp-connect-line');
+      if (tempPath) tempPath.remove();
+    }
+
+    function drawPermanentLine(nodeA, nodeB, id) {
+      const svg = document.getElementById('connection-svg');
+      if (!svg || !nodeA || !nodeB) return;
+      const svgRect = svg.getBoundingClientRect();
+
+      const portA = nodeA.querySelector('.connect-port') || nodeA;
+      const portB = nodeB.querySelector('.connect-port') || nodeB;
+      const rectA = portA.getBoundingClientRect();
+      const rectB = portB.getBoundingClientRect();
+
+      const startX = rectA.left + rectA.width / 2 - svgRect.left;
+      const startY = rectA.top + rectA.height / 2 - svgRect.top;
+      const endX = rectB.left + rectB.width / 2 - svgRect.left;
+      const endY = rectB.top + rectB.height / 2 - svgRect.top;
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('id', `perm-line-${id}`);
+      path.setAttribute('stroke', '#10B981');
+      path.setAttribute('stroke-width', '5');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('d', `M ${startX} ${startY} C ${(startX + endX)/2} ${startY}, ${(startX + endX)/2} ${endY}, ${endX} ${endY}`);
+
+      svg.appendChild(path);
+    }
+
+    /* Redraw permanent connection lines on screen resize */
+    window.addEventListener('resize', () => {
+      if (currentScreen === 'game' && currentQuestion && currentQuestion.type === 'connect') {
+        Object.keys(connectedPairs).forEach(animalId => {
+          const cat = connectedPairs[animalId];
+          const leftNode = document.querySelector(`.connect-node-left[data-animal-id="${animalId}"]`);
+          const rightNode = document.querySelector(`.connect-node-right[data-target-cat="${cat}"]`);
+          const line = document.getElementById(`perm-line-${animalId}`);
+          if (line) line.remove();
+          if (leftNode && rightNode) {
+            drawPermanentLine(leftNode, rightNode, animalId);
+          }
+        });
+      }
+    });
+
+    /* ======================================================================
+       27. RESULT SCREEN
+       Celebrates completion, updates profile, allows fresh replay.
+       ====================================================================== */
+    function showResultScreen() {
+      switchScreen('result');
+      playSound('fanfare');
+
+      const answered = sessionTotalQuestions;
+      const correct = currentScore;
+      const accuracy = Math.round((correct / answered) * 100);
+
+      document.getElementById('res-stat-answered').textContent = answered;
+      document.getElementById('res-stat-correct').textContent = correct;
+      document.getElementById('res-stat-accuracy').textContent = `${accuracy}%`;
+
+      // Update in profile
+      updateProfileStats(answered, correct);
+      const profile = getPlayerProfile();
+      document.getElementById('res-stat-best').textContent = profile.bestScore;
+
+      speakText(i18n[currentLang].resSubtitle);
+    }
+
+    function playAgainFreshSession() {
+      startSession(sessionTotalQuestions);
+    }
+
+    /* ======================================================================
+       INITIALIZATION
+       Ensures Front Page is displayed first.
+       ====================================================================== */
+    window.addEventListener('load', () => {
+      setLanguage('bm');
+      switchScreen('home');
+      // Gentle welcome readout
+      setTimeout(() => {
+        speakText(i18n[currentLang].homeSubtitle);
+      }, 500);
+    });
+  </script>
+</body>
+</html>
